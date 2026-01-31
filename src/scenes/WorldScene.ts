@@ -14,7 +14,6 @@ export class WorldScene extends Phaser.Scene {
     private isDialogOpen: boolean = false;
     private npcs: Phaser.GameObjects.Sprite[] = [];
     private playerSpeed: number = 120;
-    private canEnterChurch: boolean = false;
     private enterPrompt!: Phaser.GameObjects.Container;
     private currentDialogMessages: string[] = [];
     private currentDialogIndex: number = 0;
@@ -28,60 +27,35 @@ export class WorldScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Reset dialog state
         this.isDialogOpen = false;
         this.currentDialogMessages = [];
         this.currentDialogIndex = 0;
+        this.npcs = [];
 
         this.cameras.main.fadeIn(500);
 
-        // Create tilemap background with Nano Banana asset
         this.createBackground(width, height);
-
-        // Create church
         this.createChurch(width);
-
-        // Create biblical NPCs
         this.createBiblicalNPCs();
-
-        // Create player
         this.createPlayer(width, height);
-
-        // Create virtual joystick
         this.createVirtualJoystick();
-
-        // Create action buttons
         this.createActionButtons();
-
-        // Create dialog system
         this.createDialogBox();
-
-        // Create enter prompt
         this.createEnterPrompt();
-
-        // Create UI header
         this.createHeader();
 
-        // Setup keyboard controls
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
-
-        // Setup collision with church entrance
-        this.physics.add.overlap(this.player, this.church, () => {
-            this.canEnterChurch = true;
-        });
     }
 
     private createBackground(width: number, height: number): void {
         const mapHeight = height * 2;
 
-        // Use village_square as background if available
         if (this.textures.exists('village_square')) {
             const bg = this.add.image(width / 2, mapHeight / 2, 'village_square');
             bg.setDisplaySize(width, mapHeight);
         } else {
-            // Fallback to tiles
             for (let y = 0; y < mapHeight; y += 32) {
                 for (let x = 0; x < width; x += 32) {
                     const tile = Math.random() > 0.3 ? 'grass' : 'ground';
@@ -90,7 +64,6 @@ export class WorldScene extends Phaser.Scene {
             }
         }
 
-        // Add trees for decoration
         const treePositions = [
             { x: 40, y: 100 },
             { x: width - 40, y: 150 },
@@ -104,13 +77,11 @@ export class WorldScene extends Phaser.Scene {
             this.add.image(pos.x, pos.y, 'tree').setScale(0.8);
         });
 
-        // Set camera bounds
         this.cameras.main.setBounds(0, 0, width, height * 2);
         this.physics.world.setBounds(0, 0, width, height * 2);
     }
 
     private createChurch(width: number): void {
-        // Use Nano Banana church exterior if available
         const textureKey = this.textures.exists('church_exterior') ? 'church_exterior' : 'church';
         this.church = this.add.image(width / 2, 80, textureKey);
 
@@ -122,8 +93,7 @@ export class WorldScene extends Phaser.Scene {
 
         this.physics.add.existing(this.church, true);
 
-        // Church label
-        this.add.text(width / 2, 160, '서울중앙교회', {
+        this.add.text(width / 2, 160, 'Seoul Central Church', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#f5e6d3',
@@ -148,7 +118,6 @@ export class WorldScene extends Phaser.Scene {
             const textureKey = this.textures.exists(pos.texture) ? pos.texture : 'player';
             const npc = this.add.sprite(pos.x, pos.y, textureKey);
 
-            // Scale based on image size
             if (this.textures.exists(pos.texture)) {
                 npc.setDisplaySize(48, 48);
             } else {
@@ -158,7 +127,6 @@ export class WorldScene extends Phaser.Scene {
             npc.setData('npcId', pos.id);
             npc.setInteractive();
 
-            // Add name label
             const npcData = biblicalNPCs.find(n => n.id === pos.id);
             if (npcData) {
                 this.add.text(pos.x, pos.y + 35, npcData.koreanName, {
@@ -170,7 +138,6 @@ export class WorldScene extends Phaser.Scene {
                 }).setOrigin(0.5);
             }
 
-            // Add floating animation
             this.tweens.add({
                 targets: npc,
                 y: pos.y - 5,
@@ -185,7 +152,6 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createPlayer(width: number, height: number): void {
-        // Use gender-specific player texture
         const playerData = gameState.getPlayerData();
         let textureKey = 'player';
 
@@ -205,8 +171,6 @@ export class WorldScene extends Phaser.Scene {
 
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
-
-        // Camera follows player
         this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
     }
 
@@ -224,7 +188,6 @@ export class WorldScene extends Phaser.Scene {
             .setDepth(101)
             .setAlpha(0.8);
 
-        // Touch input for joystick
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.x < this.cameras.main.width / 2 && !this.isDialogOpen) {
                 this.isJoystickActive = true;
@@ -264,7 +227,6 @@ export class WorldScene extends Phaser.Scene {
                 this.joystickBase.setAlpha(0.6);
                 this.joystickThumb.setAlpha(0.8);
 
-                // Reset joystick position
                 const baseX = 80;
                 const baseY = this.cameras.main.height - 100;
                 this.joystickBase.setPosition(baseX, baseY);
@@ -277,35 +239,34 @@ export class WorldScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Talk button
         const talkBtn = this.add.image(width - 80, height - 130, 'action_button')
             .setScrollFactor(0)
             .setDepth(100)
             .setInteractive();
 
-        this.add.text(width - 80, height - 130, '💬', {
-            fontSize: '24px'
+        this.add.text(width - 80, height - 130, 'Talk', {
+            fontSize: '12px',
+            color: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
         talkBtn.on('pointerdown', () => {
             this.tryTalkToNPC();
         });
 
-        // Action button (punch)
         const actionBtn = this.add.image(width - 80, height - 60, 'action_button')
             .setScrollFactor(0)
             .setDepth(100)
             .setInteractive();
 
-        this.add.text(width - 80, height - 60, '👊', {
-            fontSize: '24px'
+        this.add.text(width - 80, height - 60, 'Act', {
+            fontSize: '12px',
+            color: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
         actionBtn.on('pointerdown', () => {
             this.doPunchAnimation();
         });
 
-        // Enter church button (only visible near church)
         const enterBtn = this.add.image(width - 150, height - 95, 'action_button')
             .setScrollFactor(0)
             .setDepth(100)
@@ -313,8 +274,9 @@ export class WorldScene extends Phaser.Scene {
             .setVisible(false)
             .setName('enterBtn');
 
-        this.add.text(width - 150, height - 95, '⛪', {
-            fontSize: '24px'
+        this.add.text(width - 150, height - 95, 'Enter', {
+            fontSize: '10px',
+            color: '#ffffff'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(101).setName('enterBtnIcon').setVisible(false);
 
         enterBtn.on('pointerdown', () => {
@@ -347,13 +309,12 @@ export class WorldScene extends Phaser.Scene {
             wordWrap: { width: 280 }
         }).setName('dialogMessage');
 
-        const continueText = this.add.text(130, 40, '▶ 다음', {
+        const continueText = this.add.text(130, 40, 'Next', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '12px',
             color: '#d4a574'
         }).setInteractive().setName('dialogContinue');
 
-        // Setup click handler for continue button
         continueText.on('pointerdown', () => {
             this.advanceDialog();
         });
@@ -375,7 +336,7 @@ export class WorldScene extends Phaser.Scene {
         promptBg.lineStyle(2, 0xd4a574);
         promptBg.strokeRoundedRect(-100, -20, 200, 40, 8);
 
-        const promptText = this.add.text(0, 0, '⛪ 교회 입장하기', {
+        const promptText = this.add.text(0, 0, 'Enter Church', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#f5e6d3'
@@ -396,13 +357,13 @@ export class WorldScene extends Phaser.Scene {
         headerBg.lineStyle(2, 0xd4a574);
         headerBg.lineBetween(0, 50, width, 50);
 
-        const playerLabel = this.add.text(15, 15, `🧑 ${playerName}`, {
+        const playerLabel = this.add.text(15, 15, playerName, {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '16px',
             color: '#f5e6d3'
         });
 
-        const locationLabel = this.add.text(width - 15, 15, '📍 성경 마을', {
+        const locationLabel = this.add.text(width - 15, 15, 'Biblical Village', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#d4a574'
@@ -414,7 +375,6 @@ export class WorldScene extends Phaser.Scene {
     private tryTalkToNPC(): void {
         if (this.isDialogOpen) return;
 
-        // Find nearest NPC
         let nearestNPC: Phaser.GameObjects.Sprite | null = null;
         let nearestDist = 80;
 
@@ -429,8 +389,9 @@ export class WorldScene extends Phaser.Scene {
             }
         });
 
-        if (nearestNPC) {
-            const npcId = nearestNPC.getData('npcId');
+        if (nearestNPC !== null) {
+            const npcSprite = nearestNPC as Phaser.GameObjects.Sprite;
+            const npcId = npcSprite.getData('npcId');
             const npcData = biblicalNPCs.find(n => n.id === npcId);
 
             if (npcData) {
@@ -461,11 +422,10 @@ export class WorldScene extends Phaser.Scene {
         nameText.setText(this.currentDialogName);
         messageText.setText(this.currentDialogMessages[this.currentDialogIndex]);
 
-        // Update button text based on remaining messages
         if (this.currentDialogIndex >= this.currentDialogMessages.length - 1) {
-            continueBtn.setText('▶ 닫기');
+            continueBtn.setText('Close');
         } else {
-            continueBtn.setText('▶ 다음');
+            continueBtn.setText('Next');
         }
     }
 
@@ -486,36 +446,18 @@ export class WorldScene extends Phaser.Scene {
         this.currentDialogIndex = 0;
         this.currentDialogName = '';
 
-        // Reset button text
         const continueBtn = this.dialogBox.getByName('dialogContinue') as Phaser.GameObjects.Text;
-        continueBtn.setText('▶ 다음');
+        continueBtn.setText('Next');
     }
 
     private doPunchAnimation(): void {
         if (this.isDialogOpen) return;
 
-        // Simple punch animation
         this.tweens.add({
             targets: this.player,
             scaleX: this.player.scaleX * 1.3,
             duration: 100,
-            yoyo: true,
-            onStart: () => {
-                // Add punch effect
-                const punchEffect = this.add.text(
-                    this.player.x + 30,
-                    this.player.y - 20,
-                    '💥',
-                    { fontSize: '24px' }
-                );
-                this.tweens.add({
-                    targets: punchEffect,
-                    alpha: 0,
-                    y: punchEffect.y - 30,
-                    duration: 400,
-                    onComplete: () => punchEffect.destroy()
-                });
-            }
+            yoyo: true
         });
     }
 
@@ -534,11 +476,9 @@ export class WorldScene extends Phaser.Scene {
             return;
         }
 
-        // Handle movement
         let vx = 0;
         let vy = 0;
 
-        // Keyboard controls
         if (this.cursors) {
             if (this.cursors.left.isDown) vx = -1;
             else if (this.cursors.right.isDown) vx = 1;
@@ -546,16 +486,13 @@ export class WorldScene extends Phaser.Scene {
             else if (this.cursors.down.isDown) vy = 1;
         }
 
-        // Joystick controls
         if (this.isJoystickActive) {
             vx = this.joystickVector.x;
             vy = this.joystickVector.y;
         }
 
-        // Apply velocity
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
 
-        // Check if near church
         const distToChurch = Phaser.Math.Distance.Between(
             this.player.x, this.player.y,
             this.church.x, this.church.y + 60
@@ -568,12 +505,10 @@ export class WorldScene extends Phaser.Scene {
             this.enterPrompt.setVisible(true);
             if (enterBtn) enterBtn.setVisible(true);
             if (enterBtnIcon) enterBtnIcon.setVisible(true);
-            this.canEnterChurch = true;
         } else {
             this.enterPrompt.setVisible(false);
             if (enterBtn) enterBtn.setVisible(false);
             if (enterBtnIcon) enterBtnIcon.setVisible(false);
-            this.canEnterChurch = false;
         }
     }
 }

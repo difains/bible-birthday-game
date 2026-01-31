@@ -10,13 +10,13 @@ export class BootScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        const title = this.add.text(width / 2, height / 2 - 50, '축복의 날', {
+        this.add.text(width / 2, height / 2 - 50, '축복의 날', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '32px',
             color: '#f5e6d3',
         }).setOrigin(0.5);
 
-        const subtitle = this.add.text(width / 2, height / 2, 'Blessings Day', {
+        this.add.text(width / 2, height / 2, 'Blessings Day', {
             fontFamily: '"Press Start 2P", cursive',
             fontSize: '12px',
             color: '#d4a574',

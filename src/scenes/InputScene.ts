@@ -200,7 +200,7 @@ export class InputScene extends Phaser.Scene {
         return section;
     }
 
-    private createToggleButton(text: string, value: string, selected: boolean): HTMLButtonElement {
+    private createToggleButton(text: string, _value: string, selected: boolean): HTMLButtonElement {
         const btn = document.createElement('button');
         btn.textContent = text;
         btn.style.cssText = `
