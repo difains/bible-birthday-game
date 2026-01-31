@@ -71,6 +71,9 @@ export class PreloadScene extends Phaser.Scene {
         this.load.image('biblical_david', assetPath + '다윗.png');
         this.load.image('biblical_moses', assetPath + '모세.png');
         this.load.image('biblical_mary', assetPath + '마리아.png');
+        this.load.image('biblical_abraham', assetPath + '아브라함.png');
+        this.load.image('biblical_joseph', assetPath + '요셉.png');
+        this.load.image('biblical_peter', assetPath + '베드로.png');
 
         // Backgrounds and Maps
         this.load.image('village_square', assetPath + '마을광장.png');
