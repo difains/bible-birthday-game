@@ -450,31 +450,39 @@ export class WorldScene extends Phaser.Scene {
             wordWrap: { width: 280 }
         }).setName('dialogMessage');
 
-        // Continue button - make it more prominent and clickable
+        // Continue button background
         const btnBg = this.add.graphics();
         btnBg.fillStyle(0x4a90d9, 0.9);
-        btnBg.fillRoundedRect(85, 28, 65, 24, 4);
-        btnBg.setName('dialogBtnBg');
+        btnBg.fillRoundedRect(70, 25, 80, 28, 6);
 
-        const continueBtn = this.add.text(117, 40, '다음 ▶', {
+        const continueBtn = this.add.text(110, 39, '다음 ▶', {
             fontFamily: '"Gowun Batang", serif',
-            fontSize: '13px',
+            fontSize: '14px',
             color: '#ffffff'
-        }).setOrigin(0.5).setInteractive().setName('dialogContinue');
+        }).setOrigin(0.5).setName('dialogContinue');
 
-        // Make the entire button area clickable
-        const hitArea = this.add.rectangle(117, 40, 65, 24, 0x000000, 0)
-            .setInteractive({ useHandCursor: true });
+        this.dialogBox.add([bg, nameText, messageText, btnBg, continueBtn]);
 
-        hitArea.on('pointerdown', () => {
-            this.advanceDialog();
+        // Use scene-level pointer event to handle dialog button clicks
+        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            if (!this.isDialogOpen || !this.dialogBox.visible) return;
+
+            // Calculate button bounds in screen space
+            const dialogX = width / 2;
+            const dialogY = height - 150;
+            const btnCenterX = dialogX + 110;
+            const btnCenterY = dialogY + 39;
+            const btnWidth = 80;
+            const btnHeight = 28;
+
+            // Check if click is within button bounds
+            if (pointer.x >= btnCenterX - btnWidth / 2 &&
+                pointer.x <= btnCenterX + btnWidth / 2 &&
+                pointer.y >= btnCenterY - btnHeight / 2 &&
+                pointer.y <= btnCenterY + btnHeight / 2) {
+                this.advanceDialog();
+            }
         });
-
-        continueBtn.on('pointerdown', () => {
-            this.advanceDialog();
-        });
-
-        this.dialogBox.add([bg, nameText, messageText, btnBg, continueBtn, hitArea]);
     }
 
     private createEnterPrompt(): void {
