@@ -40,37 +40,59 @@ export class PreloadScene extends Phaser.Scene {
             loadingText.destroy();
         });
 
-        // Generate placeholder graphics instead of loading external files
+        // Load actual Nano Banana assets
+        this.loadNanoBananaAssets();
+
+        // Create placeholder graphics for assets not in the folder
         this.createPlaceholderAssets();
     }
 
-    private createPlaceholderAssets(): void {
-        // Create placeholder textures programmatically
-        // These will be replaced with actual assets later
+    private loadNanoBananaAssets(): void {
+        const assetPath = 'assets/나노바나나이미지 생성 에셋/';
 
-        // Player placeholder (32x32)
+        // Player characters
+        this.load.image('player_male', assetPath + '주인공_남자.png');
+        this.load.image('player_female', assetPath + '주인공_여자.png');
+
+        // Family NPCs
+        this.load.image('family_mom', assetPath + '엄마.png');
+        this.load.image('family_dad', assetPath + '아빠.png');
+        this.load.image('family_grandma', assetPath + '할머니.png');
+        this.load.image('family_sibling', assetPath + '동생_남,여.png');
+
+        // Biblical NPCs
+        this.load.image('biblical_david', assetPath + '다윗.png');
+        this.load.image('biblical_moses', assetPath + '모세.png');
+        this.load.image('biblical_mary', assetPath + '마리아.png');
+
+        // Backgrounds and Maps
+        this.load.image('village_square', assetPath + '마을광장.png');
+        this.load.image('olive_grove', assetPath + '올리브동산.png');
+        this.load.image('church_exterior', assetPath + '서울중앙교회_외관.png');
+        this.load.image('church_interior', assetPath + '서울중앙교회_내부.png');
+
+        // UI elements
+        this.load.image('dialog_box_img', assetPath + '대화창.png');
+        this.load.image('button_set', assetPath + '버튼 세트.png');
+        this.load.image('joystick_img', assetPath + '가상 조이스틱.png');
+
+        // Effects and Items
+        this.load.image('celebration_effect', assetPath + '생일 축하 이팩트.png');
+        this.load.image('cake_img', assetPath + '케이크.png');
+    }
+
+    private createPlaceholderAssets(): void {
+        // Player placeholder (fallback)
         const playerGraphics = this.make.graphics({ x: 0, y: 0 });
         playerGraphics.fillStyle(0x4a90d9);
-        playerGraphics.fillCircle(16, 12, 8); // Head
+        playerGraphics.fillCircle(16, 12, 8);
         playerGraphics.fillStyle(0x8b6914);
-        playerGraphics.fillRect(8, 20, 16, 12); // Body
+        playerGraphics.fillRect(8, 20, 16, 12);
         playerGraphics.generateTexture('player', 32, 32);
         playerGraphics.destroy();
 
-        // NPC placeholder
-        const npcGraphics = this.make.graphics({ x: 0, y: 0 });
-        npcGraphics.fillStyle(0xd4a574);
-        npcGraphics.fillCircle(16, 12, 8);
-        npcGraphics.fillStyle(0x6b4423);
-        npcGraphics.fillRect(8, 20, 16, 12);
-        npcGraphics.generateTexture('npc', 32, 32);
-        npcGraphics.destroy();
-
-        // Family member placeholders with different colors
+        // Family member placeholders for types not in the folder
         const familyColors: Record<string, number> = {
-            mom: 0xff69b4,
-            dad: 0x4169e1,
-            grandma: 0x9370db,
             grandpa: 0x8b4513,
             brother: 0x32cd32,
             sister: 0xffd700,
@@ -92,11 +114,8 @@ export class PreloadScene extends Phaser.Scene {
             g.destroy();
         });
 
-        // Biblical NPC placeholders
+        // Biblical NPC placeholders for types not in the folder
         const biblicalColors: Record<string, number> = {
-            david: 0xffd700,
-            moses: 0xf5f5dc,
-            mary: 0x87ceeb,
             abraham: 0xdaa520,
             joseph: 0xff8c00,
             peter: 0x4682b4,
@@ -113,7 +132,7 @@ export class PreloadScene extends Phaser.Scene {
             g.destroy();
         });
 
-        // Dialog box
+        // Dialog box (fallback)
         const dialogGraphics = this.make.graphics({ x: 0, y: 0 });
         dialogGraphics.fillStyle(0x3d2817, 0.95);
         dialogGraphics.fillRoundedRect(0, 0, 320, 120, 12);
@@ -176,17 +195,17 @@ export class PreloadScene extends Phaser.Scene {
         grassTile.generateTexture('grass', 32, 32);
         grassTile.destroy();
 
-        // Church building
+        // Church building (fallback)
         const church = this.make.graphics({ x: 0, y: 0 });
         church.fillStyle(0xf5f5dc);
-        church.fillRect(16, 40, 96, 80); // Main building
+        church.fillRect(16, 40, 96, 80);
         church.fillStyle(0x8b4513);
-        church.fillTriangle(64, 0, 16, 40, 112, 40); // Roof
+        church.fillTriangle(64, 0, 16, 40, 112, 40);
         church.fillStyle(0xffd700);
-        church.fillRect(54, 10, 20, 25); // Cross
+        church.fillRect(54, 10, 20, 25);
         church.fillRect(60, 5, 8, 35);
         church.fillStyle(0x654321);
-        church.fillRect(44, 80, 40, 40); // Door
+        church.fillRect(44, 80, 40, 40);
         church.generateTexture('church', 128, 128);
         church.destroy();
 
@@ -199,32 +218,32 @@ export class PreloadScene extends Phaser.Scene {
         churchFloor.generateTexture('church_floor', 32, 32);
         churchFloor.destroy();
 
-        // Cake
+        // Cake (fallback)
         const cake = this.make.graphics({ x: 0, y: 0 });
         cake.fillStyle(0xffc0cb);
-        cake.fillRect(8, 24, 48, 24); // Bottom layer
+        cake.fillRect(8, 24, 48, 24);
         cake.fillStyle(0xffb6c1);
-        cake.fillRect(14, 12, 36, 16); // Top layer
+        cake.fillRect(14, 12, 36, 16);
         cake.fillStyle(0xff69b4);
-        cake.fillRect(28, 4, 8, 12); // Candle
+        cake.fillRect(28, 4, 8, 12);
         cake.fillStyle(0xffa500);
-        cake.fillCircle(32, 2, 4); // Flame
+        cake.fillCircle(32, 2, 4);
         cake.generateTexture('cake', 64, 48);
         cake.destroy();
 
         // Tree
         const tree = this.make.graphics({ x: 0, y: 0 });
         tree.fillStyle(0x8b4513);
-        tree.fillRect(24, 40, 16, 24); // Trunk
+        tree.fillRect(24, 40, 16, 24);
         tree.fillStyle(0x228b22);
-        tree.fillCircle(32, 20, 24); // Foliage
+        tree.fillCircle(32, 20, 24);
         tree.fillStyle(0x2e8b2e);
         tree.fillCircle(24, 28, 16);
         tree.fillCircle(40, 28, 16);
         tree.generateTexture('tree', 64, 64);
         tree.destroy();
 
-        // Confetti particle
+        // Confetti particles
         const confetti = this.make.graphics({ x: 0, y: 0 });
         confetti.fillStyle(0xff69b4);
         confetti.fillRect(0, 0, 8, 8);

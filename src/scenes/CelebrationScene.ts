@@ -18,6 +18,7 @@ export class CelebrationScene extends Phaser.Scene {
     private playerSpeed: number = 100;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
     private familySprites: Phaser.GameObjects.Sprite[] = [];
+    private isDialogActive: boolean = false;
 
     constructor() {
         super({ key: 'CelebrationScene' });
@@ -34,6 +35,11 @@ export class CelebrationScene extends Phaser.Scene {
         this.currentIndex = 0;
         this.messageIndex = 0;
         this.isComplete = false;
+        this.isDialogActive = false;
+        this.familySprites = [];
+        this.confettiEmitters = [];
+        this.isJoystickActive = false;
+        this.joystickVector.set(0, 0);
 
         // Create celebration background
         this.createBackground(width, height);
@@ -41,8 +47,15 @@ export class CelebrationScene extends Phaser.Scene {
         // Create family sprites
         this.createFamilySprites(width, height);
 
-        // Create cake
-        this.add.image(width / 2, height / 2 - 50, 'cake').setScale(1.5).setDepth(5);
+        // Create cake - use Nano Banana asset if available
+        const cakeTexture = this.textures.exists('cake_img') ? 'cake_img' : 'cake';
+        const cake = this.add.image(width / 2, height / 2 - 50, cakeTexture);
+        if (this.textures.exists('cake_img')) {
+            cake.setDisplaySize(80, 80);
+        } else {
+            cake.setScale(1.5);
+        }
+        cake.setDepth(5);
 
         // Create dialog box
         this.createDialogBox(width, height);
@@ -101,8 +114,8 @@ export class CelebrationScene extends Phaser.Scene {
         const arcRadius = 120;
         const centerX = width / 2;
         const centerY = height / 2 - 100;
-        const startAngle = Math.PI; // Start from left
-        const endAngle = 0; // End at right
+        const startAngle = Math.PI;
+        const endAngle = 0;
         const angleStep = family.length > 1 ? (endAngle - startAngle) / (family.length - 1) : 0;
 
         family.forEach((member, index) => {
@@ -110,16 +123,25 @@ export class CelebrationScene extends Phaser.Scene {
             const x = centerX + Math.cos(angle) * arcRadius;
             const y = centerY + Math.sin(angle) * arcRadius * 0.5 + 50;
 
-            const sprite = this.add.sprite(x, y, `family_${member.type}`)
-                .setScale(1.3)
-                .setDepth(10)
-                .setAlpha(0.5);
+            // Check for Nano Banana asset
+            const textureKey = this.textures.exists(`family_${member.type}`)
+                ? `family_${member.type}`
+                : 'player';
 
+            const sprite = this.add.sprite(x, y, textureKey);
+
+            if (this.textures.exists(`family_${member.type}`)) {
+                sprite.setDisplaySize(48, 48);
+            } else {
+                sprite.setScale(1.3);
+            }
+
+            sprite.setDepth(10).setAlpha(0.5);
             sprite.setData('familyType', member.type);
             sprite.setData('familyLabel', member.label);
 
             // Add name label
-            this.add.text(x, y + 28, member.label, {
+            this.add.text(x, y + 32, member.label, {
                 fontFamily: '"Gowun Batang", serif',
                 fontSize: '10px',
                 color: '#f5e6d3',
@@ -194,6 +216,7 @@ export class CelebrationScene extends Phaser.Scene {
             return;
         }
 
+        this.isDialogActive = true;
         const member = this.familyQueue[this.currentIndex];
         const playerName = gameState.getPlayerName();
         this.currentMessages = getFamilyMessage(member.type, playerName);
@@ -227,7 +250,7 @@ export class CelebrationScene extends Phaser.Scene {
         speakerText.setText(`💬 ${speaker}`);
         messageText.setText(this.currentMessages[this.messageIndex]);
 
-        // Update button text
+        // Update button text based on remaining messages
         if (this.messageIndex >= this.currentMessages.length - 1) {
             if (this.currentIndex >= this.familyQueue.length - 1) {
                 continueBtn.setText('▶ 완료');
@@ -250,6 +273,7 @@ export class CelebrationScene extends Phaser.Scene {
         if (this.messageIndex >= this.currentMessages.length) {
             // Move to next family member
             this.currentIndex++;
+            this.messageIndex = 0;
             this.showNextFamilyMember();
         } else {
             // Show next message from same family member
@@ -260,6 +284,7 @@ export class CelebrationScene extends Phaser.Scene {
 
     private showFinalMessage(): void {
         this.isComplete = true;
+        this.isDialogActive = false;
         const playerName = gameState.getPlayerName();
 
         const speakerText = this.dialogBox.getByName('speaker') as Phaser.GameObjects.Text;
@@ -284,6 +309,7 @@ export class CelebrationScene extends Phaser.Scene {
     private startFreePlay(): void {
         // Hide dialog
         this.dialogBox.setVisible(false);
+        this.isDialogActive = false;
 
         // Stop confetti gradually
         this.confettiEmitters.forEach(emitter => {
@@ -293,12 +319,26 @@ export class CelebrationScene extends Phaser.Scene {
             });
         });
 
-        // Create player
+        // Create player - use gender-specific texture
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
+        const playerData = gameState.getPlayerData();
 
-        this.player = this.physics.add.sprite(width / 2, height - 80, 'player');
-        this.player.setScale(1.5);
+        let textureKey = 'player';
+        if (playerData?.gender === 'male' && this.textures.exists('player_male')) {
+            textureKey = 'player_male';
+        } else if (playerData?.gender === 'female' && this.textures.exists('player_female')) {
+            textureKey = 'player_female';
+        }
+
+        this.player = this.physics.add.sprite(width / 2, height - 80, textureKey);
+
+        if (textureKey !== 'player') {
+            this.player.setDisplaySize(48, 48);
+        } else {
+            this.player.setScale(1.5);
+        }
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(20);
 
@@ -339,7 +379,7 @@ export class CelebrationScene extends Phaser.Scene {
             .setAlpha(0.8);
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (pointer.x < this.cameras.main.width / 2 && this.isComplete) {
+            if (pointer.x < this.cameras.main.width / 2 && this.isComplete && !this.isDialogActive) {
                 this.isJoystickActive = true;
                 this.joystickBase.setPosition(pointer.x, pointer.y);
                 this.joystickThumb.setPosition(pointer.x, pointer.y);
@@ -401,7 +441,7 @@ export class CelebrationScene extends Phaser.Scene {
             if (this.player) {
                 this.tweens.add({
                     targets: this.player,
-                    scaleX: 1.8,
+                    scaleX: this.player.scaleX * 1.3,
                     duration: 100,
                     yoyo: true
                 });
@@ -470,7 +510,7 @@ export class CelebrationScene extends Phaser.Scene {
     }
 
     update(): void {
-        if (!this.isComplete || !this.player) return;
+        if (!this.isComplete || !this.player || this.isDialogActive) return;
 
         let vx = 0;
         let vy = 0;

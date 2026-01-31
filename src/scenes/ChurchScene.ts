@@ -20,6 +20,11 @@ export class ChurchScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
+        // Reset state
+        this.celebrationTriggered = false;
+        this.isJoystickActive = false;
+        this.joystickVector.set(0, 0);
+
         this.cameras.main.fadeIn(500);
 
         // Create church interior
@@ -35,7 +40,7 @@ export class ChurchScene extends Phaser.Scene {
         this.createAltarZone(width);
 
         // Create UI
-        this.createUI(width);
+        this.createUI(width, height);
 
         // Create virtual joystick
         this.createVirtualJoystick();
@@ -50,45 +55,53 @@ export class ChurchScene extends Phaser.Scene {
     }
 
     private createChurchInterior(width: number, height: number): void {
-        // Floor tiles
-        for (let y = 0; y < height; y += 32) {
-            for (let x = 0; x < width; x += 32) {
-                this.add.image(x + 16, y + 16, 'church_floor');
+        // Use Nano Banana church interior if available
+        if (this.textures.exists('church_interior')) {
+            const bg = this.add.image(width / 2, height / 2, 'church_interior');
+            bg.setDisplaySize(width, height);
+        } else {
+            // Fallback: Floor tiles
+            for (let y = 0; y < height; y += 32) {
+                for (let x = 0; x < width; x += 32) {
+                    this.add.image(x + 16, y + 16, 'church_floor');
+                }
             }
+
+            // Background decoration - altar area
+            const altarBg = this.add.graphics();
+            altarBg.fillStyle(0x4a2c1a, 1);
+            altarBg.fillRect(0, 0, width, 120);
+            altarBg.lineStyle(4, 0xd4a574);
+            altarBg.lineBetween(0, 120, width, 120);
+
+            // Cross
+            const cross = this.add.graphics();
+            cross.fillStyle(0xffd700);
+            cross.fillRect(width / 2 - 6, 20, 12, 80);
+            cross.fillRect(width / 2 - 25, 35, 50, 12);
         }
-
-        // Background decoration - altar area
-        const altarBg = this.add.graphics();
-        altarBg.fillStyle(0x4a2c1a, 1);
-        altarBg.fillRect(0, 0, width, 120);
-        altarBg.lineStyle(4, 0xd4a574);
-        altarBg.lineBetween(0, 120, width, 120);
-
-        // Cross
-        const cross = this.add.graphics();
-        cross.fillStyle(0xffd700);
-        cross.fillRect(width / 2 - 6, 20, 12, 80);
-        cross.fillRect(width / 2 - 25, 35, 50, 12);
 
         // Church name
         this.add.text(width / 2, 110, '서울중앙교회', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '12px',
             color: '#f5e6d3'
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(10);
 
-        // Decorative elements - pews
-        for (let row = 0; row < 3; row++) {
-            for (let col = 0; col < 3; col++) {
-                const pewX = 60 + col * 120;
-                const pewY = 200 + row * 80;
+        // Decorative elements - pews (only if no background image)
+        if (!this.textures.exists('church_interior')) {
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    const pewX = 60 + col * 120;
+                    const pewY = 200 + row * 80;
 
-                const pew = this.add.graphics();
-                pew.fillStyle(0x654321);
-                pew.fillRect(pewX - 40, pewY, 80, 20);
-                pew.fillStyle(0x8b4513);
-                pew.fillRect(pewX - 35, pewY - 15, 5, 20);
-                pew.fillRect(pewX + 30, pewY - 15, 5, 20);
+                    const pew = this.add.graphics();
+                    pew.fillStyle(0x654321);
+                    pew.fillRect(pewX - 40, pewY, 80, 20);
+                    pew.fillStyle(0x8b4513);
+                    pew.fillRect(pewX - 35, pewY - 15, 5, 20);
+                    pew.fillRect(pewX + 30, pewY - 15, 5, 20);
+                }
             }
         }
 
@@ -96,7 +109,7 @@ export class ChurchScene extends Phaser.Scene {
         this.addBirthdayDecorations(width, height);
     }
 
-    private addBirthdayDecorations(width: number, height: number): void {
+    private addBirthdayDecorations(width: number, _height: number): void {
         // Balloons
         const balloonColors = [0xff69b4, 0x87ceeb, 0xffd700, 0x98fb98, 0xdda0dd];
         const balloonPositions = [
@@ -115,6 +128,7 @@ export class ChurchScene extends Phaser.Scene {
             balloon.lineStyle(2, 0x666666);
             balloon.lineBetween(0, 15, 0, 35);
             balloon.setPosition(pos.x, pos.y);
+            balloon.setDepth(5);
 
             // Floating animation
             this.tweens.add({
@@ -128,24 +142,24 @@ export class ChurchScene extends Phaser.Scene {
         });
 
         // Banner
-        const banner = this.add.graphics();
-        banner.fillStyle(0xff6b6b);
-        banner.fillTriangle(80, 55, 100, 70, 80, 85);
-        banner.fillTriangle(width - 80, 55, width - 100, 70, width - 80, 85);
-
         this.add.text(width / 2, 60, '🎂 생일 축하합니다! 🎂', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#ffd700',
             backgroundColor: '#8b0000aa',
             padding: { x: 10, y: 5 }
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(10);
 
-        // Cake on altar
-        this.add.image(width / 2, 95, 'cake').setScale(1);
+        // Cake on altar - use Nano Banana asset if available
+        const cakeTexture = this.textures.exists('cake_img') ? 'cake_img' : 'cake';
+        const cake = this.add.image(width / 2, 95, cakeTexture);
+        if (this.textures.exists('cake_img')) {
+            cake.setDisplaySize(64, 64);
+        }
+        cake.setDepth(5);
     }
 
-    private createFamilyNPCs(width: number, height: number): void {
+    private createFamilyNPCs(width: number, _height: number): void {
         const family = gameState.getFamily();
         const spacing = width / (family.length + 1);
 
@@ -153,18 +167,31 @@ export class ChurchScene extends Phaser.Scene {
             const x = spacing * (index + 1);
             const y = 160;
 
-            const npc = this.add.sprite(x, y, `family_${member.type}`).setScale(1.5);
+            // Check for Nano Banana asset
+            const textureKey = this.textures.exists(`family_${member.type}`)
+                ? `family_${member.type}`
+                : 'player';
+
+            const npc = this.add.sprite(x, y, textureKey);
+
+            if (this.textures.exists(`family_${member.type}`)) {
+                npc.setDisplaySize(48, 48);
+            } else {
+                npc.setScale(1.5);
+            }
+
             npc.setData('familyType', member.type);
             npc.setData('familyLabel', member.label);
+            npc.setDepth(8);
 
             // Add name label
-            this.add.text(x, y + 30, member.label, {
+            this.add.text(x, y + 35, member.label, {
                 fontFamily: '"Gowun Batang", serif',
                 fontSize: '11px',
                 color: '#f5e6d3',
                 backgroundColor: '#2c181088',
                 padding: { x: 4, y: 2 }
-            }).setOrigin(0.5);
+            }).setOrigin(0.5).setDepth(9);
 
             // Idle animation
             this.tweens.add({
@@ -179,8 +206,24 @@ export class ChurchScene extends Phaser.Scene {
     }
 
     private createPlayer(width: number, height: number): void {
-        this.player = this.physics.add.sprite(width / 2, height - 100, 'player');
-        this.player.setScale(1.5);
+        // Use gender-specific player texture
+        const playerData = gameState.getPlayerData();
+        let textureKey = 'player';
+
+        if (playerData?.gender === 'male' && this.textures.exists('player_male')) {
+            textureKey = 'player_male';
+        } else if (playerData?.gender === 'female' && this.textures.exists('player_female')) {
+            textureKey = 'player_female';
+        }
+
+        this.player = this.physics.add.sprite(width / 2, height - 100, textureKey);
+
+        if (textureKey !== 'player') {
+            this.player.setDisplaySize(48, 48);
+        } else {
+            this.player.setScale(1.5);
+        }
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
     }
@@ -198,7 +241,7 @@ export class ChurchScene extends Phaser.Scene {
         });
     }
 
-    private createUI(width: number): void {
+    private createUI(width: number, height: number): void {
         const playerName = gameState.getPlayerName();
 
         const header = this.add.container(0, 0).setScrollFactor(0).setDepth(150);
@@ -243,7 +286,7 @@ export class ChurchScene extends Phaser.Scene {
             .setAlpha(0.8);
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (pointer.x < this.cameras.main.width / 2) {
+            if (pointer.x < this.cameras.main.width / 2 && !this.celebrationTriggered) {
                 this.isJoystickActive = true;
                 this.joystickBase.setPosition(pointer.x, pointer.y);
                 this.joystickThumb.setPosition(pointer.x, pointer.y);
@@ -302,7 +345,9 @@ export class ChurchScene extends Phaser.Scene {
         }).setOrigin(0.5).setDepth(101);
 
         backBtn.on('pointerdown', () => {
-            this.goBackToWorld();
+            if (!this.celebrationTriggered) {
+                this.goBackToWorld();
+            }
         });
     }
 
@@ -354,5 +399,3 @@ export class ChurchScene extends Phaser.Scene {
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
     }
 }
-
-const height = 640; // Match game config height

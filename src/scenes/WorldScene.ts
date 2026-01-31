@@ -16,6 +16,9 @@ export class WorldScene extends Phaser.Scene {
     private playerSpeed: number = 120;
     private canEnterChurch: boolean = false;
     private enterPrompt!: Phaser.GameObjects.Container;
+    private currentDialogMessages: string[] = [];
+    private currentDialogIndex: number = 0;
+    private currentDialogName: string = '';
 
     constructor() {
         super({ key: 'WorldScene' });
@@ -25,9 +28,14 @@ export class WorldScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
+        // Reset dialog state
+        this.isDialogOpen = false;
+        this.currentDialogMessages = [];
+        this.currentDialogIndex = 0;
+
         this.cameras.main.fadeIn(500);
 
-        // Create tilemap background
+        // Create tilemap background with Nano Banana asset
         this.createBackground(width, height);
 
         // Create church
@@ -66,13 +74,19 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createBackground(width: number, height: number): void {
-        // Create grass tiles as background
         const mapHeight = height * 2;
 
-        for (let y = 0; y < mapHeight; y += 32) {
-            for (let x = 0; x < width; x += 32) {
-                const tile = Math.random() > 0.3 ? 'grass' : 'ground';
-                this.add.image(x + 16, y + 16, tile);
+        // Use village_square as background if available
+        if (this.textures.exists('village_square')) {
+            const bg = this.add.image(width / 2, mapHeight / 2, 'village_square');
+            bg.setDisplaySize(width, mapHeight);
+        } else {
+            // Fallback to tiles
+            for (let y = 0; y < mapHeight; y += 32) {
+                for (let x = 0; x < width; x += 32) {
+                    const tile = Math.random() > 0.3 ? 'grass' : 'ground';
+                    this.add.image(x + 16, y + 16, tile);
+                }
             }
         }
 
@@ -96,8 +110,16 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createChurch(width: number): void {
-        // Church at the top of the map
-        this.church = this.add.image(width / 2, 80, 'church').setScale(1.2);
+        // Use Nano Banana church exterior if available
+        const textureKey = this.textures.exists('church_exterior') ? 'church_exterior' : 'church';
+        this.church = this.add.image(width / 2, 80, textureKey);
+
+        if (this.textures.exists('church_exterior')) {
+            this.church.setDisplaySize(140, 140);
+        } else {
+            this.church.setScale(1.2);
+        }
+
         this.physics.add.existing(this.church, true);
 
         // Church label
@@ -114,23 +136,32 @@ export class WorldScene extends Phaser.Scene {
         const width = this.cameras.main.width;
 
         const npcPositions = [
-            { id: 'david', x: 80, y: 250 },
-            { id: 'moses', x: width - 80, y: 300 },
-            { id: 'mary', x: 100, y: 450 },
-            { id: 'abraham', x: width - 100, y: 500 },
-            { id: 'joseph', x: 150, y: 650 },
-            { id: 'peter', x: width - 150, y: 700 }
+            { id: 'david', x: 80, y: 250, texture: 'biblical_david' },
+            { id: 'moses', x: width - 80, y: 300, texture: 'biblical_moses' },
+            { id: 'mary', x: 100, y: 450, texture: 'biblical_mary' },
+            { id: 'abraham', x: width - 100, y: 500, texture: 'biblical_abraham' },
+            { id: 'joseph', x: 150, y: 650, texture: 'biblical_joseph' },
+            { id: 'peter', x: width - 150, y: 700, texture: 'biblical_peter' }
         ];
 
         npcPositions.forEach(pos => {
-            const npc = this.add.sprite(pos.x, pos.y, `biblical_${pos.id}`).setScale(1.5);
+            const textureKey = this.textures.exists(pos.texture) ? pos.texture : 'player';
+            const npc = this.add.sprite(pos.x, pos.y, textureKey);
+
+            // Scale based on image size
+            if (this.textures.exists(pos.texture)) {
+                npc.setDisplaySize(48, 48);
+            } else {
+                npc.setScale(1.5);
+            }
+
             npc.setData('npcId', pos.id);
             npc.setInteractive();
 
             // Add name label
             const npcData = biblicalNPCs.find(n => n.id === pos.id);
             if (npcData) {
-                this.add.text(pos.x, pos.y + 30, npcData.koreanName, {
+                this.add.text(pos.x, pos.y + 35, npcData.koreanName, {
                     fontFamily: '"Gowun Batang", serif',
                     fontSize: '11px',
                     color: '#f5e6d3',
@@ -154,9 +185,24 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createPlayer(width: number, height: number): void {
-        // Start player at bottom of map
-        this.player = this.physics.add.sprite(width / 2, height * 1.5, 'player');
-        this.player.setScale(1.5);
+        // Use gender-specific player texture
+        const playerData = gameState.getPlayerData();
+        let textureKey = 'player';
+
+        if (playerData?.gender === 'male' && this.textures.exists('player_male')) {
+            textureKey = 'player_male';
+        } else if (playerData?.gender === 'female' && this.textures.exists('player_female')) {
+            textureKey = 'player_female';
+        }
+
+        this.player = this.physics.add.sprite(width / 2, height * 1.5, textureKey);
+
+        if (textureKey !== 'player') {
+            this.player.setDisplaySize(48, 48);
+        } else {
+            this.player.setScale(1.5);
+        }
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
 
@@ -307,6 +353,11 @@ export class WorldScene extends Phaser.Scene {
             color: '#d4a574'
         }).setInteractive().setName('dialogContinue');
 
+        // Setup click handler for continue button
+        continueText.on('pointerdown', () => {
+            this.advanceDialog();
+        });
+
         this.dialogBox.add([bg, nameText, messageText, continueText]);
     }
 
@@ -394,45 +445,59 @@ export class WorldScene extends Phaser.Scene {
 
     private showDialog(name: string, messages: string[]): void {
         this.isDialogOpen = true;
-        this.dialogBox.setVisible(true);
+        this.currentDialogName = name;
+        this.currentDialogMessages = messages;
+        this.currentDialogIndex = 0;
 
-        let messageIndex = 0;
+        this.dialogBox.setVisible(true);
+        this.updateDialogDisplay();
+    }
+
+    private updateDialogDisplay(): void {
         const nameText = this.dialogBox.getByName('dialogName') as Phaser.GameObjects.Text;
         const messageText = this.dialogBox.getByName('dialogMessage') as Phaser.GameObjects.Text;
         const continueBtn = this.dialogBox.getByName('dialogContinue') as Phaser.GameObjects.Text;
 
-        const showNextMessage = () => {
-            if (messageIndex < messages.length) {
-                nameText.setText(name);
-                messageText.setText(messages[messageIndex]);
-                messageIndex++;
+        nameText.setText(this.currentDialogName);
+        messageText.setText(this.currentDialogMessages[this.currentDialogIndex]);
 
-                if (messageIndex >= messages.length) {
-                    continueBtn.setText('▶ 닫기');
-                }
-            } else {
-                this.closeDialog();
-            }
-        };
+        // Update button text based on remaining messages
+        if (this.currentDialogIndex >= this.currentDialogMessages.length - 1) {
+            continueBtn.setText('▶ 닫기');
+        } else {
+            continueBtn.setText('▶ 다음');
+        }
+    }
 
-        showNextMessage();
+    private advanceDialog(): void {
+        this.currentDialogIndex++;
 
-        continueBtn.off('pointerdown');
-        continueBtn.on('pointerdown', showNextMessage);
+        if (this.currentDialogIndex >= this.currentDialogMessages.length) {
+            this.closeDialog();
+        } else {
+            this.updateDialogDisplay();
+        }
     }
 
     private closeDialog(): void {
         this.isDialogOpen = false;
         this.dialogBox.setVisible(false);
+        this.currentDialogMessages = [];
+        this.currentDialogIndex = 0;
+        this.currentDialogName = '';
+
+        // Reset button text
         const continueBtn = this.dialogBox.getByName('dialogContinue') as Phaser.GameObjects.Text;
         continueBtn.setText('▶ 다음');
     }
 
     private doPunchAnimation(): void {
+        if (this.isDialogOpen) return;
+
         // Simple punch animation
         this.tweens.add({
             targets: this.player,
-            scaleX: 1.8,
+            scaleX: this.player.scaleX * 1.3,
             duration: 100,
             yoyo: true,
             onStart: () => {
@@ -455,6 +520,8 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private enterChurch(): void {
+        if (this.isDialogOpen) return;
+
         this.cameras.main.fadeOut(500);
         this.time.delayedCall(500, () => {
             this.scene.start('ChurchScene');
