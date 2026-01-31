@@ -12,7 +12,7 @@ export class WorldScene extends Phaser.Scene {
     private church!: Phaser.GameObjects.Image;
     private dialogBox!: Phaser.GameObjects.Container;
     private isDialogOpen: boolean = false;
-    private npcs: Phaser.GameObjects.Sprite[] = [];
+    private npcs: { sprite: Phaser.GameObjects.Sprite; x: number; y: number; id: string }[] = [];
     private playerSpeed: number = 150;
     private enterPrompt!: Phaser.GameObjects.Container;
     private currentDialogMessages: string[] = [];
@@ -23,7 +23,6 @@ export class WorldScene extends Phaser.Scene {
     private mapHeight: number = 0;
     private minimap!: Phaser.GameObjects.Container;
     private minimapPlayerDot!: Phaser.GameObjects.Graphics;
-    private minimapScale: number = 0.08;
 
     constructor() {
         super({ key: 'WorldScene' });
@@ -33,7 +32,6 @@ export class WorldScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Reset all state
         this.isDialogOpen = false;
         this.currentDialogMessages = [];
         this.currentDialogIndex = 0;
@@ -47,17 +45,16 @@ export class WorldScene extends Phaser.Scene {
 
         this.cameras.main.fadeIn(500);
 
-        // Create open world map
         this.createOpenWorldMap(width, height);
         this.createChurch();
         this.createBiblicalNPCs();
         this.createPlayer();
+        this.createMinimap();
         this.createVirtualJoystick();
         this.createActionButtons();
         this.createDialogBox();
         this.createEnterPrompt();
         this.createHeader();
-        this.createMinimap();
 
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
@@ -86,16 +83,13 @@ export class WorldScene extends Phaser.Scene {
             }
         }
 
-        // Trees
         const treePositions = [
             { x: 60, y: 200 },
             { x: this.mapWidth - 60, y: 250 },
             { x: 80, y: 500 },
             { x: this.mapWidth - 80, y: 550 },
             { x: 120, y: 800 },
-            { x: this.mapWidth - 120, y: 850 },
-            { x: this.mapWidth / 2 - 120, y: 650 },
-            { x: this.mapWidth / 2 + 120, y: 700 }
+            { x: this.mapWidth - 120, y: 850 }
         ];
 
         treePositions.forEach(pos => {
@@ -116,7 +110,6 @@ export class WorldScene extends Phaser.Scene {
             const frame = texture.getSourceImage();
             const ratio = frame.width / frame.height;
 
-            // Make church prominent and properly sized
             const displayHeight = 200;
             const displayWidth = displayHeight * ratio;
 
@@ -130,7 +123,6 @@ export class WorldScene extends Phaser.Scene {
         this.church.setDepth(5);
         this.physics.add.existing(this.church, true);
 
-        // Church name label below the building
         this.add.text(this.mapWidth / 2, this.church.y + this.church.displayHeight / 2 + 15, '서울중앙교회', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '16px',
@@ -141,7 +133,6 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createBiblicalNPCs(): void {
-        // NPC positions spread across the map
         const npcPositions = [
             { id: 'david', x: this.mapWidth * 0.18, y: 450 },
             { id: 'moses', x: this.mapWidth * 0.82, y: 550 },
@@ -170,14 +161,9 @@ export class WorldScene extends Phaser.Scene {
                 const texture = this.textures.get(textureKey);
                 const frame = texture.getSourceImage();
 
-                // All NPC assets have 2 poses side by side
-                // Create a sprite and crop to show only first pose
                 npc = this.add.sprite(pos.x, pos.y, textureKey);
-
                 const halfWidth = frame.width / 2;
                 npc.setCrop(0, 0, halfWidth, frame.height);
-
-                // Scale appropriately
                 const targetHeight = 80;
                 const scale = targetHeight / frame.height;
                 npc.setScale(scale);
@@ -201,7 +187,6 @@ export class WorldScene extends Phaser.Scene {
                 }).setOrigin(0.5).setDepth(9);
             }
 
-            // Idle animation
             this.tweens.add({
                 targets: npc,
                 y: pos.y - 5,
@@ -211,25 +196,28 @@ export class WorldScene extends Phaser.Scene {
                 ease: 'Sine.easeInOut'
             });
 
-            this.npcs.push(npc);
+            this.npcs.push({ sprite: npc, x: pos.x, y: pos.y, id: pos.id });
         });
     }
 
     private createPlayer(): void {
-        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
-        const hasSheet = this.textures.exists(sheetKey);
+        const imageKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
+        const hasImage = this.textures.exists(imageKey);
 
         const startX = this.mapWidth / 2;
         const startY = this.mapHeight * 0.55;
 
-        if (hasSheet) {
-            this.player = this.physics.add.sprite(startX, startY, sheetKey, 0);
-            this.player.setDisplaySize(56, 56);
+        if (hasImage) {
+            this.player = this.physics.add.sprite(startX, startY, imageKey);
 
-            const animKey = `player_${this.playerGender}_idle`;
-            if (this.anims.exists(animKey)) {
-                this.player.play(animKey);
-            }
+            // Crop to show only first frame (top-left character)
+            const texture = this.textures.get(imageKey);
+            const frame = texture.getSourceImage();
+            const frameWidth = frame.width / 8;
+            const frameHeight = (frame.height - 40) / 4; // Subtract text banner height
+
+            this.player.setCrop(0, 0, frameWidth, frameHeight);
+            this.player.setDisplaySize(50, 50);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
             this.player.setScale(1.8);
@@ -249,48 +237,45 @@ export class WorldScene extends Phaser.Scene {
             .setScrollFactor(0)
             .setDepth(200);
 
-        // Background with glassmorphism effect
+        // Background
         const bg = this.add.graphics();
         bg.fillStyle(0x1a1a2e, 0.85);
         bg.fillRoundedRect(-minimapWidth / 2, -minimapHeight / 2, minimapWidth, minimapHeight, 8);
         bg.lineStyle(2, 0x4a90d9, 0.8);
         bg.strokeRoundedRect(-minimapWidth / 2, -minimapHeight / 2, minimapWidth, minimapHeight, 8);
+        this.minimap.add(bg);
 
-        // Map representation
+        // Map ground
         const mapGraphics = this.add.graphics();
         mapGraphics.fillStyle(0x5a8a3a, 0.6);
         mapGraphics.fillRoundedRect(-minimapWidth / 2 + 5, -minimapHeight / 2 + 5, minimapWidth - 10, minimapHeight - 10, 4);
+        this.minimap.add(mapGraphics);
 
-        // Church marker
+        // Church marker (gold)
         const churchX = (this.mapWidth / 2 / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
         const churchY = (150 / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
         const churchMarker = this.add.graphics();
         churchMarker.fillStyle(0xffd700);
-        churchMarker.fillCircle(churchX, churchY, 4);
+        churchMarker.fillCircle(churchX, churchY, 5);
+        this.minimap.add(churchMarker);
 
-        // NPC markers
-        this.npcs.forEach(npc => {
-            const npcX = (npc.x / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
-            const npcY = (npc.y / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
+        // NPC markers (cyan) - use stored positions
+        this.npcs.forEach(npcData => {
+            const npcX = (npcData.x / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
+            const npcY = (npcData.y / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
             const npcMarker = this.add.graphics();
-            npcMarker.fillStyle(0x87ceeb);
-            npcMarker.fillCircle(npcX, npcY, 3);
+            npcMarker.fillStyle(0x00ffff);
+            npcMarker.fillCircle(npcX, npcY, 4);
             this.minimap.add(npcMarker);
         });
 
-        // Player dot (will be updated)
+        // Player dot (red)
         this.minimapPlayerDot = this.add.graphics();
         this.minimapPlayerDot.fillStyle(0xff4444);
-        this.minimapPlayerDot.fillCircle(0, 0, 4);
-        this.minimapPlayerDot.lineStyle(1, 0xffffff, 0.8);
-        this.minimapPlayerDot.strokeCircle(0, 0, 4);
-
-        // Camera view rectangle
-        const viewRectWidth = (this.cameras.main.width / this.mapWidth) * (minimapWidth - 10);
-        const viewRectHeight = (this.cameras.main.height / this.mapHeight) * (minimapHeight - 10);
-        const viewRect = this.add.graphics();
-        viewRect.lineStyle(1, 0xffffff, 0.5);
-        viewRect.strokeRect(-viewRectWidth / 2, -viewRectHeight / 2, viewRectWidth, viewRectHeight);
+        this.minimapPlayerDot.fillCircle(0, 0, 5);
+        this.minimapPlayerDot.lineStyle(2, 0xffffff, 1);
+        this.minimapPlayerDot.strokeCircle(0, 0, 5);
+        this.minimap.add(this.minimapPlayerDot);
 
         // Label
         const label = this.add.text(0, minimapHeight / 2 - 12, '미니맵', {
@@ -298,8 +283,7 @@ export class WorldScene extends Phaser.Scene {
             fontSize: '10px',
             color: '#ffffff'
         }).setOrigin(0.5);
-
-        this.minimap.add([bg, mapGraphics, churchMarker, this.minimapPlayerDot, viewRect, label]);
+        this.minimap.add(label);
     }
 
     private updateMinimap(): void {
@@ -330,6 +314,20 @@ export class WorldScene extends Phaser.Scene {
             .setAlpha(0.8);
 
         this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+            // Check if clicking on dialog button first
+            if (this.isDialogOpen) {
+                const width = this.cameras.main.width;
+                const dialogY = this.cameras.main.height - 150;
+                const btnCenterX = width / 2 + 110;
+                const btnCenterY = dialogY + 39;
+
+                if (pointer.x >= btnCenterX - 40 && pointer.x <= btnCenterX + 40 &&
+                    pointer.y >= btnCenterY - 14 && pointer.y <= btnCenterY + 14) {
+                    this.advanceDialog();
+                    return;
+                }
+            }
+
             if (pointer.x < this.cameras.main.width / 2 && !this.isDialogOpen) {
                 this.isJoystickActive = true;
                 this.joystickBase.setPosition(pointer.x, pointer.y);
@@ -450,7 +448,6 @@ export class WorldScene extends Phaser.Scene {
             wordWrap: { width: 280 }
         }).setName('dialogMessage');
 
-        // Continue button background
         const btnBg = this.add.graphics();
         btnBg.fillStyle(0x4a90d9, 0.9);
         btnBg.fillRoundedRect(70, 25, 80, 28, 6);
@@ -462,27 +459,6 @@ export class WorldScene extends Phaser.Scene {
         }).setOrigin(0.5).setName('dialogContinue');
 
         this.dialogBox.add([bg, nameText, messageText, btnBg, continueBtn]);
-
-        // Use scene-level pointer event to handle dialog button clicks
-        this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-            if (!this.isDialogOpen || !this.dialogBox.visible) return;
-
-            // Calculate button bounds in screen space
-            const dialogX = width / 2;
-            const dialogY = height - 150;
-            const btnCenterX = dialogX + 110;
-            const btnCenterY = dialogY + 39;
-            const btnWidth = 80;
-            const btnHeight = 28;
-
-            // Check if click is within button bounds
-            if (pointer.x >= btnCenterX - btnWidth / 2 &&
-                pointer.x <= btnCenterX + btnWidth / 2 &&
-                pointer.y >= btnCenterY - btnHeight / 2 &&
-                pointer.y <= btnCenterY + btnHeight / 2) {
-                this.advanceDialog();
-            }
-        });
     }
 
     private createEnterPrompt(): void {
@@ -536,23 +512,22 @@ export class WorldScene extends Phaser.Scene {
     private tryTalkToNPC(): void {
         if (this.isDialogOpen) return;
 
-        let nearestNPC: Phaser.GameObjects.Sprite | null = null;
+        let nearestNPC: { sprite: Phaser.GameObjects.Sprite; id: string } | null = null;
         let nearestDist = 120;
 
-        this.npcs.forEach(npc => {
+        this.npcs.forEach(npcData => {
             const dist = Phaser.Math.Distance.Between(
                 this.player.x, this.player.y,
-                npc.x, npc.y
+                npcData.sprite.x, npcData.sprite.y
             );
             if (dist < nearestDist) {
                 nearestDist = dist;
-                nearestNPC = npc;
+                nearestNPC = npcData;
             }
         });
 
         if (nearestNPC !== null) {
-            const npcSprite = nearestNPC as Phaser.GameObjects.Sprite;
-            const npcId = npcSprite.getData('npcId');
+            const npcId = (nearestNPC as { sprite: Phaser.GameObjects.Sprite; id: string }).id;
             const npcData = biblicalNPCs.find(n => n.id === npcId);
 
             if (npcData) {
@@ -668,35 +643,8 @@ export class WorldScene extends Phaser.Scene {
         }
 
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
-
-        // Update player animation
-        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
-        if (this.textures.exists(sheetKey)) {
-            if (vx !== 0 || vy !== 0) {
-                if (Math.abs(vy) > Math.abs(vx)) {
-                    const animKey = vy < 0 ? `player_${this.playerGender}_walk_up` : `player_${this.playerGender}_walk_down`;
-                    if (this.player.anims.currentAnim?.key !== animKey) {
-                        this.player.play(animKey);
-                    }
-                } else {
-                    const animKey = `player_${this.playerGender}_walk_side`;
-                    if (this.player.anims.currentAnim?.key !== animKey) {
-                        this.player.play(animKey);
-                    }
-                    this.player.setFlipX(vx < 0);
-                }
-            } else {
-                const animKey = `player_${this.playerGender}_idle`;
-                if (this.player.anims.currentAnim?.key !== animKey) {
-                    this.player.play(animKey);
-                }
-            }
-        }
-
-        // Update minimap
         this.updateMinimap();
 
-        // Check church proximity
         const distToChurch = Phaser.Math.Distance.Between(
             this.player.x, this.player.y,
             this.church.x, this.church.y + this.church.displayHeight / 2

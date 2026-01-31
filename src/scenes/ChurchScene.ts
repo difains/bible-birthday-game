@@ -14,6 +14,9 @@ export class ChurchScene extends Phaser.Scene {
     private mapWidth: number = 0;
     private mapHeight: number = 0;
     private playerGender: string = 'male';
+    private minimap!: Phaser.GameObjects.Container;
+    private minimapPlayerDot!: Phaser.GameObjects.Graphics;
+    private familyPositions: { x: number; y: number }[] = [];
 
     constructor() {
         super({ key: 'ChurchScene' });
@@ -23,86 +26,65 @@ export class ChurchScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Reset state
         this.celebrationTriggered = false;
         this.isJoystickActive = false;
         this.joystickVector.set(0, 0);
+        this.familyPositions = [];
 
         const playerData = gameState.getPlayerData();
         this.playerGender = playerData?.gender || 'male';
 
         this.cameras.main.fadeIn(500);
 
-        // Create open world church interior
         this.createOpenWorldChurch(width, height);
-
-        // Create family NPCs
         this.createFamilyNPCs();
-
-        // Create player
         this.createPlayer();
-
-        // Create altar zone for triggering celebration
         this.createAltarZone();
-
-        // Create UI
+        this.createMinimap();
         this.createUI();
-
-        // Create virtual joystick
         this.createVirtualJoystick();
-
-        // Create action buttons
         this.createActionButtons();
 
-        // Setup keyboard
         if (this.input.keyboard) {
             this.cursors = this.input.keyboard.createCursorKeys();
         }
     }
 
     private createOpenWorldChurch(screenWidth: number, screenHeight: number): void {
-        // Open world: church interior is larger than screen
         if (this.textures.exists('church_interior')) {
             const texture = this.textures.get('church_interior');
             const frame = texture.getSourceImage();
 
-            // Use image size as map size (scaled up for exploration)
             this.mapWidth = Math.max(frame.width, screenWidth * 1.5);
             this.mapHeight = Math.max(frame.height, screenHeight * 2);
 
             const bg = this.add.image(this.mapWidth / 2, this.mapHeight / 2, 'church_interior');
             bg.setDisplaySize(this.mapWidth, this.mapHeight);
         } else {
-            // Fallback: create larger map
             this.mapWidth = screenWidth * 1.5;
             this.mapHeight = screenHeight * 2;
 
-            // Floor tiles
             for (let y = 0; y < this.mapHeight; y += 32) {
                 for (let x = 0; x < this.mapWidth; x += 32) {
                     this.add.image(x + 16, y + 16, 'church_floor');
                 }
             }
 
-            // Altar area at top
             const altarBg = this.add.graphics();
             altarBg.fillStyle(0x4a2c1a, 1);
             altarBg.fillRect(0, 0, this.mapWidth, 150);
             altarBg.lineStyle(4, 0xd4a574);
             altarBg.lineBetween(0, 150, this.mapWidth, 150);
 
-            // Cross
             const cross = this.add.graphics();
             cross.fillStyle(0xffd700);
             cross.fillRect(this.mapWidth / 2 - 8, 30, 16, 100);
             cross.fillRect(this.mapWidth / 2 - 35, 50, 70, 16);
         }
 
-        // Set world and camera bounds
         this.cameras.main.setBounds(0, 0, this.mapWidth, this.mapHeight);
         this.physics.world.setBounds(0, 0, this.mapWidth, this.mapHeight);
 
-        // Church name at the altar
         this.add.text(this.mapWidth / 2, 130, '서울중앙교회', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '16px',
@@ -111,12 +93,10 @@ export class ChurchScene extends Phaser.Scene {
             padding: { x: 10, y: 5 }
         }).setOrigin(0.5).setDepth(10);
 
-        // Birthday decorations
         this.addBirthdayDecorations();
     }
 
     private addBirthdayDecorations(): void {
-        // Balloons around the altar
         const balloonColors = [0xff69b4, 0x87ceeb, 0xffd700, 0x98fb98, 0xdda0dd];
         const balloonPositions = [
             { x: 50, y: 100 },
@@ -146,7 +126,6 @@ export class ChurchScene extends Phaser.Scene {
             });
         });
 
-        // Banner
         this.add.text(this.mapWidth / 2, 70, '🎂 생일 축하합니다! 🎂', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '18px',
@@ -155,7 +134,6 @@ export class ChurchScene extends Phaser.Scene {
             padding: { x: 15, y: 8 }
         }).setOrigin(0.5).setDepth(10);
 
-        // Cake on altar
         const cakeTexture = this.textures.exists('cake_img') ? 'cake_img' : 'cake';
         const cake = this.add.image(this.mapWidth / 2, 200, cakeTexture);
         if (this.textures.exists('cake_img')) {
@@ -167,7 +145,6 @@ export class ChurchScene extends Phaser.Scene {
     private createFamilyNPCs(): void {
         const family = gameState.getFamily();
 
-        // Spread family around the altar area
         const positions = [
             { x: this.mapWidth * 0.25, y: 280 },
             { x: this.mapWidth * 0.5, y: 320 },
@@ -180,6 +157,7 @@ export class ChurchScene extends Phaser.Scene {
             if (index >= positions.length) return;
 
             const pos = positions[index];
+            this.familyPositions.push(pos);
 
             const textureKey = this.textures.exists(`family_${member.type}`)
                 ? `family_${member.type}`
@@ -197,7 +175,6 @@ export class ChurchScene extends Phaser.Scene {
             npc.setData('familyLabel', member.label);
             npc.setDepth(8);
 
-            // Name label
             this.add.text(pos.x, pos.y + 40, member.label, {
                 fontFamily: '"Gowun Batang", serif',
                 fontSize: '12px',
@@ -206,7 +183,6 @@ export class ChurchScene extends Phaser.Scene {
                 padding: { x: 4, y: 2 }
             }).setOrigin(0.5).setDepth(9);
 
-            // Idle animation
             this.tweens.add({
                 targets: npc,
                 y: pos.y - 4,
@@ -219,21 +195,22 @@ export class ChurchScene extends Phaser.Scene {
     }
 
     private createPlayer(): void {
-        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
-        const hasSheet = this.textures.exists(sheetKey);
+        const imageKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
+        const hasImage = this.textures.exists(imageKey);
 
-        // Start player at bottom of the map
         const startX = this.mapWidth / 2;
         const startY = this.mapHeight * 0.8;
 
-        if (hasSheet) {
-            this.player = this.physics.add.sprite(startX, startY, sheetKey, 0);
-            this.player.setDisplaySize(56, 56);
+        if (hasImage) {
+            this.player = this.physics.add.sprite(startX, startY, imageKey);
 
-            const animKey = `player_${this.playerGender}_idle`;
-            if (this.anims.exists(animKey)) {
-                this.player.play(animKey);
-            }
+            const texture = this.textures.get(imageKey);
+            const frame = texture.getSourceImage();
+            const frameWidth = frame.width / 8;
+            const frameHeight = (frame.height - 40) / 4;
+
+            this.player.setCrop(0, 0, frameWidth, frameHeight);
+            this.player.setDisplaySize(50, 50);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
             this.player.setScale(1.8);
@@ -241,13 +218,10 @@ export class ChurchScene extends Phaser.Scene {
 
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(10);
-
-        // Camera follows player
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     }
 
     private createAltarZone(): void {
-        // Zone near the altar that triggers celebration
         this.altarZone = this.add.zone(this.mapWidth / 2, 250, 250, 80);
         this.physics.add.existing(this.altarZone, true);
 
@@ -259,6 +233,77 @@ export class ChurchScene extends Phaser.Scene {
         });
     }
 
+    private createMinimap(): void {
+        const minimapWidth = 90;
+        const minimapHeight = 120;
+        const margin = 10;
+
+        this.minimap = this.add.container(margin + minimapWidth / 2, 60 + minimapHeight / 2)
+            .setScrollFactor(0)
+            .setDepth(200);
+
+        // Background
+        const bg = this.add.graphics();
+        bg.fillStyle(0x1a1a2e, 0.85);
+        bg.fillRoundedRect(-minimapWidth / 2, -minimapHeight / 2, minimapWidth, minimapHeight, 8);
+        bg.lineStyle(2, 0x4a90d9, 0.8);
+        bg.strokeRoundedRect(-minimapWidth / 2, -minimapHeight / 2, minimapWidth, minimapHeight, 8);
+        this.minimap.add(bg);
+
+        // Church floor
+        const mapGraphics = this.add.graphics();
+        mapGraphics.fillStyle(0x654321, 0.6);
+        mapGraphics.fillRoundedRect(-minimapWidth / 2 + 5, -minimapHeight / 2 + 5, minimapWidth - 10, minimapHeight - 10, 4);
+        this.minimap.add(mapGraphics);
+
+        // Altar marker (gold cross)
+        const altarX = (this.mapWidth / 2 / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
+        const altarY = (200 / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
+        const altarMarker = this.add.graphics();
+        altarMarker.fillStyle(0xffd700);
+        altarMarker.fillRect(altarX - 2, altarY - 6, 4, 12);
+        altarMarker.fillRect(altarX - 6, altarY - 2, 12, 4);
+        this.minimap.add(altarMarker);
+
+        // Family markers (pink)
+        this.familyPositions.forEach(pos => {
+            const famX = (pos.x / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
+            const famY = (pos.y / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
+            const famMarker = this.add.graphics();
+            famMarker.fillStyle(0xff69b4);
+            famMarker.fillCircle(famX, famY, 3);
+            this.minimap.add(famMarker);
+        });
+
+        // Player dot (red)
+        this.minimapPlayerDot = this.add.graphics();
+        this.minimapPlayerDot.fillStyle(0xff4444);
+        this.minimapPlayerDot.fillCircle(0, 0, 5);
+        this.minimapPlayerDot.lineStyle(2, 0xffffff, 1);
+        this.minimapPlayerDot.strokeCircle(0, 0, 5);
+        this.minimap.add(this.minimapPlayerDot);
+
+        // Label
+        const label = this.add.text(0, minimapHeight / 2 - 12, '교회 내부', {
+            fontFamily: '"Gowun Batang", serif',
+            fontSize: '9px',
+            color: '#ffffff'
+        }).setOrigin(0.5);
+        this.minimap.add(label);
+    }
+
+    private updateMinimap(): void {
+        if (!this.minimapPlayerDot || !this.player) return;
+
+        const minimapWidth = 90;
+        const minimapHeight = 120;
+
+        const playerX = (this.player.x / this.mapWidth) * (minimapWidth - 10) - (minimapWidth - 10) / 2;
+        const playerY = (this.player.y / this.mapHeight) * (minimapHeight - 10) - (minimapHeight - 10) / 2;
+
+        this.minimapPlayerDot.setPosition(playerX, playerY);
+    }
+
     private createUI(): void {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -267,30 +312,29 @@ export class ChurchScene extends Phaser.Scene {
         const header = this.add.container(0, 0).setScrollFactor(0).setDepth(150);
 
         const headerBg = this.add.graphics();
-        headerBg.fillStyle(0x2c1810, 0.85);
+        headerBg.fillStyle(0x1a1a2e, 0.85);
         headerBg.fillRect(0, 0, width, 45);
-        headerBg.lineStyle(2, 0xd4a574);
+        headerBg.lineStyle(2, 0x4a90d9);
         headerBg.lineBetween(0, 45, width, 45);
 
-        const playerLabel = this.add.text(12, 12, `🧑 ${playerName}`, {
+        const playerLabel = this.add.text(110, 12, `🧑 ${playerName}`, {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
-            color: '#f5e6d3'
+            color: '#ffffff'
         });
 
         const locationLabel = this.add.text(width - 12, 12, '⛪ 서울중앙교회', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '12px',
-            color: '#d4a574'
+            color: '#87ceeb'
         }).setOrigin(1, 0);
 
         header.add([headerBg, playerLabel, locationLabel]);
 
-        // Hint text
         this.add.text(width / 2, height - 25, '💡 제단으로 이동하여 가족을 만나세요!', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '12px',
-            color: '#d4a574',
+            color: '#ffd700',
             backgroundColor: '#2c1810cc',
             padding: { x: 8, y: 4 }
         }).setOrigin(0.5).setScrollFactor(0).setDepth(150).setName('hintText');
@@ -361,7 +405,6 @@ export class ChurchScene extends Phaser.Scene {
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
 
-        // Back to world button
         const backBtn = this.add.image(width - 80, height - 80, 'action_button')
             .setScrollFactor(0)
             .setDepth(100)
@@ -381,14 +424,11 @@ export class ChurchScene extends Phaser.Scene {
     }
 
     private startCelebration(): void {
-        // Hide hint
         const hint = this.children.getByName('hintText') as Phaser.GameObjects.Text;
         if (hint) hint.setVisible(false);
 
-        // Stop player
         this.player.setVelocity(0, 0);
 
-        // Transition to celebration scene
         this.time.delayedCall(500, () => {
             this.cameras.main.fadeOut(300);
             this.time.delayedCall(300, () => {
@@ -426,29 +466,6 @@ export class ChurchScene extends Phaser.Scene {
         }
 
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
-
-        // Update player animation
-        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
-        if (this.textures.exists(sheetKey)) {
-            if (vx !== 0 || vy !== 0) {
-                if (Math.abs(vy) > Math.abs(vx)) {
-                    const animKey = vy < 0 ? `player_${this.playerGender}_walk_up` : `player_${this.playerGender}_walk_down`;
-                    if (this.player.anims.currentAnim?.key !== animKey) {
-                        this.player.play(animKey);
-                    }
-                } else {
-                    const animKey = `player_${this.playerGender}_walk_side`;
-                    if (this.player.anims.currentAnim?.key !== animKey) {
-                        this.player.play(animKey);
-                    }
-                    this.player.setFlipX(vx < 0);
-                }
-            } else {
-                const animKey = `player_${this.playerGender}_idle`;
-                if (this.player.anims.currentAnim?.key !== animKey) {
-                    this.player.play(animKey);
-                }
-            }
-        }
+        this.updateMinimap();
     }
 }

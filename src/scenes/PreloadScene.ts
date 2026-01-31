@@ -50,16 +50,9 @@ export class PreloadScene extends Phaser.Scene {
     private loadNanoBananaAssets(): void {
         const assetPath = 'assets/나노바나나이미지 생성 에셋/';
 
-        // Player characters - spritesheet (8 columns x 4 rows, each frame 64x64)
-        // The sprite sheet is approximately 512x256 pixels
-        this.load.spritesheet('player_male_sheet', assetPath + '주인공_남자.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
-        this.load.spritesheet('player_female_sheet', assetPath + '주인공_여자.png', {
-            frameWidth: 64,
-            frameHeight: 64
-        });
+        // Player characters - load as images (spritesheet has text banner)
+        this.load.image('player_male', assetPath + '주인공_남자.png');
+        this.load.image('player_female', assetPath + '주인공_여자.png');
 
         // Family NPCs - single images
         this.load.image('family_mom', assetPath + '엄마.png');
