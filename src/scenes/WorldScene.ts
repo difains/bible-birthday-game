@@ -18,6 +18,7 @@ export class WorldScene extends Phaser.Scene {
     private currentDialogMessages: string[] = [];
     private currentDialogIndex: number = 0;
     private currentDialogName: string = '';
+    private playerGender: string = 'male';
 
     constructor() {
         super({ key: 'WorldScene' });
@@ -31,6 +32,9 @@ export class WorldScene extends Phaser.Scene {
         this.currentDialogMessages = [];
         this.currentDialogIndex = 0;
         this.npcs = [];
+
+        const playerData = gameState.getPlayerData();
+        this.playerGender = playerData?.gender || 'male';
 
         this.cameras.main.fadeIn(500);
 
@@ -53,8 +57,25 @@ export class WorldScene extends Phaser.Scene {
         const mapHeight = height * 2;
 
         if (this.textures.exists('village_square')) {
-            const bg = this.add.image(width / 2, mapHeight / 2, 'village_square');
-            bg.setDisplaySize(width, mapHeight);
+            // Get the actual texture dimensions
+            const texture = this.textures.get('village_square');
+            const frame = texture.getSourceImage();
+            const imgWidth = frame.width;
+            const imgHeight = frame.height;
+            const imgRatio = imgWidth / imgHeight;
+
+            // For portrait mode, we want to cover the width and let height extend
+            // Calculate the height needed to maintain aspect ratio
+            const displayWidth = width;
+            const displayHeight = displayWidth / imgRatio;
+
+            // Create multiple tiles to cover the map
+            const tilesNeeded = Math.ceil(mapHeight / displayHeight) + 1;
+
+            for (let i = 0; i < tilesNeeded; i++) {
+                const bg = this.add.image(width / 2, displayHeight / 2 + i * displayHeight, 'village_square');
+                bg.setDisplaySize(displayWidth, displayHeight);
+            }
         } else {
             for (let y = 0; y < mapHeight; y += 32) {
                 for (let x = 0; x < width; x += 32) {
@@ -86,14 +107,19 @@ export class WorldScene extends Phaser.Scene {
         this.church = this.add.image(width / 2, 80, textureKey);
 
         if (this.textures.exists('church_exterior')) {
-            this.church.setDisplaySize(140, 140);
+            // Maintain aspect ratio
+            const texture = this.textures.get('church_exterior');
+            const frame = texture.getSourceImage();
+            const ratio = frame.width / frame.height;
+            const displayWidth = 160;
+            this.church.setDisplaySize(displayWidth, displayWidth / ratio);
         } else {
             this.church.setScale(1.2);
         }
 
         this.physics.add.existing(this.church, true);
 
-        this.add.text(width / 2, 160, 'Seoul Central Church', {
+        this.add.text(width / 2, 170, 'Seoul Central Church', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#f5e6d3',
@@ -105,21 +131,45 @@ export class WorldScene extends Phaser.Scene {
     private createBiblicalNPCs(): void {
         const width = this.cameras.main.width;
 
+        // Map NPC ids to their asset keys
+        const npcAssetMap: Record<string, string> = {
+            'david': 'biblical_david',
+            'moses': 'biblical_moses',
+            'mary': 'biblical_mary',
+            'abraham': 'biblical_abraham',
+            'joseph': 'biblical_joseph',
+            'peter': 'biblical_peter'
+        };
+
         const npcPositions = [
-            { id: 'david', x: 80, y: 250, texture: 'biblical_david' },
-            { id: 'moses', x: width - 80, y: 300, texture: 'biblical_moses' },
-            { id: 'mary', x: 100, y: 450, texture: 'biblical_mary' },
-            { id: 'abraham', x: width - 100, y: 500, texture: 'biblical_abraham' },
-            { id: 'joseph', x: 150, y: 650, texture: 'biblical_joseph' },
-            { id: 'peter', x: width - 150, y: 700, texture: 'biblical_peter' }
+            { id: 'david', x: 80, y: 250 },
+            { id: 'moses', x: width - 80, y: 300 },
+            { id: 'mary', x: 100, y: 450 },
+            { id: 'abraham', x: width - 100, y: 500 },
+            { id: 'joseph', x: 150, y: 650 },
+            { id: 'peter', x: width - 150, y: 700 }
         ];
 
         npcPositions.forEach(pos => {
-            const textureKey = this.textures.exists(pos.texture) ? pos.texture : 'player';
-            const npc = this.add.sprite(pos.x, pos.y, textureKey);
+            const textureKey = npcAssetMap[pos.id];
+            const hasAsset = this.textures.exists(textureKey);
+            const npc = this.add.sprite(pos.x, pos.y, hasAsset ? textureKey : 'player');
 
-            if (this.textures.exists(pos.texture)) {
-                npc.setDisplaySize(48, 48);
+            if (hasAsset) {
+                // Get actual texture size and scale appropriately
+                const texture = this.textures.get(textureKey);
+                const frame = texture.getSourceImage();
+                const ratio = frame.width / frame.height;
+
+                // For NPC images with multiple poses, use only half width
+                if (pos.id === 'david' || pos.id === 'moses') {
+                    // These have 2 poses side by side, so crop to show only first pose
+                    npc.setCrop(0, 0, frame.width / 2, frame.height);
+                    npc.setDisplaySize(60, 60 / ratio * 2);
+                } else {
+                    // Single pose NPCs
+                    npc.setDisplaySize(60, 60 / ratio);
+                }
             } else {
                 npc.setScale(1.5);
             }
@@ -129,7 +179,7 @@ export class WorldScene extends Phaser.Scene {
 
             const npcData = biblicalNPCs.find(n => n.id === pos.id);
             if (npcData) {
-                this.add.text(pos.x, pos.y + 35, npcData.koreanName, {
+                this.add.text(pos.x, pos.y + 45, npcData.koreanName, {
                     fontFamily: '"Gowun Batang", serif',
                     fontSize: '11px',
                     color: '#f5e6d3',
@@ -152,20 +202,20 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createPlayer(width: number, height: number): void {
-        const playerData = gameState.getPlayerData();
-        let textureKey = 'player';
+        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
+        const hasSheet = this.textures.exists(sheetKey);
 
-        if (playerData?.gender === 'male' && this.textures.exists('player_male')) {
-            textureKey = 'player_male';
-        } else if (playerData?.gender === 'female' && this.textures.exists('player_female')) {
-            textureKey = 'player_female';
-        }
-
-        this.player = this.physics.add.sprite(width / 2, height * 1.5, textureKey);
-
-        if (textureKey !== 'player') {
+        if (hasSheet) {
+            this.player = this.physics.add.sprite(width / 2, height * 1.5, sheetKey, 0);
             this.player.setDisplaySize(48, 48);
+
+            // Play idle animation
+            const animKey = `player_${this.playerGender}_idle`;
+            if (this.anims.exists(animKey)) {
+                this.player.play(animKey);
+            }
         } else {
+            this.player = this.physics.add.sprite(width / 2, height * 1.5, 'player');
             this.player.setScale(1.5);
         }
 
@@ -325,7 +375,7 @@ export class WorldScene extends Phaser.Scene {
     private createEnterPrompt(): void {
         const width = this.cameras.main.width;
 
-        this.enterPrompt = this.add.container(width / 2, 180)
+        this.enterPrompt = this.add.container(width / 2, 200)
             .setScrollFactor(0)
             .setDepth(150)
             .setVisible(false);
@@ -376,7 +426,7 @@ export class WorldScene extends Phaser.Scene {
         if (this.isDialogOpen) return;
 
         let nearestNPC: Phaser.GameObjects.Sprite | null = null;
-        let nearestDist = 80;
+        let nearestDist = 100;
 
         this.npcs.forEach(npc => {
             const dist = Phaser.Math.Distance.Between(
@@ -422,6 +472,7 @@ export class WorldScene extends Phaser.Scene {
         nameText.setText(this.currentDialogName);
         messageText.setText(this.currentDialogMessages[this.currentDialogIndex]);
 
+        // Show "Close" on last message
         if (this.currentDialogIndex >= this.currentDialogMessages.length - 1) {
             continueBtn.setText('Close');
         } else {
@@ -432,6 +483,7 @@ export class WorldScene extends Phaser.Scene {
     private advanceDialog(): void {
         this.currentDialogIndex++;
 
+        // If we've gone past all messages, close the dialog
         if (this.currentDialogIndex >= this.currentDialogMessages.length) {
             this.closeDialog();
         } else {
@@ -446,6 +498,7 @@ export class WorldScene extends Phaser.Scene {
         this.currentDialogIndex = 0;
         this.currentDialogName = '';
 
+        // Reset button text for next dialog
         const continueBtn = this.dialogBox.getByName('dialogContinue') as Phaser.GameObjects.Text;
         continueBtn.setText('Next');
     }
@@ -493,6 +546,32 @@ export class WorldScene extends Phaser.Scene {
 
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
 
+        // Update player animation based on movement
+        const sheetKey = this.playerGender === 'male' ? 'player_male_sheet' : 'player_female_sheet';
+        if (this.textures.exists(sheetKey)) {
+            if (vx !== 0 || vy !== 0) {
+                // Walking
+                if (Math.abs(vy) > Math.abs(vx)) {
+                    const animKey = vy < 0 ? `player_${this.playerGender}_walk_up` : `player_${this.playerGender}_walk_down`;
+                    if (this.player.anims.currentAnim?.key !== animKey) {
+                        this.player.play(animKey);
+                    }
+                } else {
+                    const animKey = `player_${this.playerGender}_walk_side`;
+                    if (this.player.anims.currentAnim?.key !== animKey) {
+                        this.player.play(animKey);
+                    }
+                    this.player.setFlipX(vx < 0);
+                }
+            } else {
+                // Idle
+                const animKey = `player_${this.playerGender}_idle`;
+                if (this.player.anims.currentAnim?.key !== animKey) {
+                    this.player.play(animKey);
+                }
+            }
+        }
+
         const distToChurch = Phaser.Math.Distance.Between(
             this.player.x, this.player.y,
             this.church.x, this.church.y + 60
@@ -501,7 +580,7 @@ export class WorldScene extends Phaser.Scene {
         const enterBtn = this.children.getByName('enterBtn') as Phaser.GameObjects.Image;
         const enterBtnIcon = this.children.getByName('enterBtnIcon') as Phaser.GameObjects.Text;
 
-        if (distToChurch < 100) {
+        if (distToChurch < 120) {
             this.enterPrompt.setVisible(true);
             if (enterBtn) enterBtn.setVisible(true);
             if (enterBtnIcon) enterBtnIcon.setVisible(true);

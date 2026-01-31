@@ -21,7 +21,7 @@ export class PreloadScene extends Phaser.Scene {
         this.progressBar = this.add.graphics();
 
         // Loading text
-        const loadingText = this.add.text(width / 2, height / 2 - 50, '에셋 로딩 중...', {
+        const loadingText = this.add.text(width / 2, height / 2 - 50, 'Loading...', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '18px',
             color: '#f5e6d3'
@@ -50,17 +50,24 @@ export class PreloadScene extends Phaser.Scene {
     private loadNanoBananaAssets(): void {
         const assetPath = 'assets/나노바나나이미지 생성 에셋/';
 
-        // Player characters
-        this.load.image('player_male', assetPath + '주인공_남자.png');
-        this.load.image('player_female', assetPath + '주인공_여자.png');
+        // Player characters - spritesheet (8 columns x 4 rows, each frame 64x64)
+        // The sprite sheet is approximately 512x256 pixels
+        this.load.spritesheet('player_male_sheet', assetPath + '주인공_남자.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
+        this.load.spritesheet('player_female_sheet', assetPath + '주인공_여자.png', {
+            frameWidth: 64,
+            frameHeight: 64
+        });
 
-        // Family NPCs
+        // Family NPCs - single images
         this.load.image('family_mom', assetPath + '엄마.png');
         this.load.image('family_dad', assetPath + '아빠.png');
         this.load.image('family_grandma', assetPath + '할머니.png');
         this.load.image('family_sibling', assetPath + '동생_남,여.png');
 
-        // Biblical NPCs
+        // Biblical NPCs - single images with multiple poses
         this.load.image('biblical_david', assetPath + '다윗.png');
         this.load.image('biblical_moses', assetPath + '모세.png');
         this.load.image('biblical_mary', assetPath + '마리아.png');
@@ -260,6 +267,61 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     create(): void {
+        // Create player animations from sprite sheets
+        if (this.textures.exists('player_male_sheet')) {
+            this.anims.create({
+                key: 'player_male_idle',
+                frames: this.anims.generateFrameNumbers('player_male_sheet', { start: 0, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_male_walk_down',
+                frames: this.anims.generateFrameNumbers('player_male_sheet', { start: 0, end: 7 }),
+                frameRate: 8,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_male_walk_up',
+                frames: this.anims.generateFrameNumbers('player_male_sheet', { start: 8, end: 15 }),
+                frameRate: 8,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_male_walk_side',
+                frames: this.anims.generateFrameNumbers('player_male_sheet', { start: 16, end: 23 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+
+        if (this.textures.exists('player_female_sheet')) {
+            this.anims.create({
+                key: 'player_female_idle',
+                frames: this.anims.generateFrameNumbers('player_female_sheet', { start: 0, end: 3 }),
+                frameRate: 6,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_female_walk_down',
+                frames: this.anims.generateFrameNumbers('player_female_sheet', { start: 0, end: 7 }),
+                frameRate: 8,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_female_walk_up',
+                frames: this.anims.generateFrameNumbers('player_female_sheet', { start: 8, end: 15 }),
+                frameRate: 8,
+                repeat: -1
+            });
+            this.anims.create({
+                key: 'player_female_walk_side',
+                frames: this.anims.generateFrameNumbers('player_female_sheet', { start: 16, end: 23 }),
+                frameRate: 8,
+                repeat: -1
+            });
+        }
+
         // Transition to input scene
         this.cameras.main.fadeOut(300);
         this.time.delayedCall(300, () => {
