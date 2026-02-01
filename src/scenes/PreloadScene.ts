@@ -51,15 +51,16 @@ export class PreloadScene extends Phaser.Scene {
         const assetPath = 'assets/나노바나나이미지 생성 에셋/';
 
         // Player characters - spritesheet (8x4 grid)
-        // Actual image size: 2816x1536 pixels (RGBA with transparency)
-        // Frame size: 2816/8 = 352, 1536/4 = 384
+        // Actual image: ~640×480 pixels with text banner at bottom
+        // Usable sprite area: ~640×384 (excluding text)
+        // Frame size: 640/8 = 80, 384/4 = 96
         this.load.spritesheet('player_male', assetPath + '주인공_남자.png', {
-            frameWidth: 352,
-            frameHeight: 384
+            frameWidth: 80,
+            frameHeight: 96
         });
         this.load.spritesheet('player_female', assetPath + '주인공_여자.png', {
-            frameWidth: 352,
-            frameHeight: 384
+            frameWidth: 80,
+            frameHeight: 96
         });
 
         // Family NPCs - multi-pose images (need cropping when displayed)
