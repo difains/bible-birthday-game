@@ -62,11 +62,18 @@ export class PreloadScene extends Phaser.Scene {
             frameHeight: 384
         });
 
-        // Family NPCs - single images
+        // Family NPCs - multi-pose images (need cropping when displayed)
+        // 엄마, 아빠, 할머니: 1920×768 (3 poses, each 640×768)
+        // 동생: 1280×768 (2 poses, male left, female right)
         this.load.image('family_mom', assetPath + '엄마.png');
         this.load.image('family_dad', assetPath + '아빠.png');
         this.load.image('family_grandma', assetPath + '할머니.png');
         this.load.image('family_sibling', assetPath + '동생_남,여.png');
+
+        // Map all family types to available assets
+        // brother, sister, son, daughter -> sibling asset
+        // husband, wife -> mom/dad assets
+        // older_brother, older_sister -> sibling asset
 
         // Biblical NPCs - single images with multiple poses
         this.load.image('biblical_david', assetPath + '다윗.png');

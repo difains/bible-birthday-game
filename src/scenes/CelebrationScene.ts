@@ -48,14 +48,22 @@ export class CelebrationScene extends Phaser.Scene {
         this.createFamilySprites(width, height);
 
         // Create cake - use Nano Banana asset if available
-        const cakeTexture = this.textures.exists('cake_img') ? 'cake_img' : 'cake';
-        const cake = this.add.image(width / 2, height / 2 - 50, cakeTexture);
+        // 케이크.png: 768×1024 pixels
         if (this.textures.exists('cake_img')) {
-            cake.setDisplaySize(80, 80);
+            const cakeTexture = this.textures.get('cake_img');
+            const cakeFrame = cakeTexture.getSourceImage();
+            const cake = this.add.image(width / 2, height / 2 - 30, 'cake_img');
+
+            // Scale to target height while maintaining aspect ratio
+            const targetHeight = 120;
+            const scale = targetHeight / cakeFrame.height;
+            cake.setScale(scale);
+            cake.setDepth(5);
         } else {
+            const cake = this.add.image(width / 2, height / 2 - 30, 'cake');
             cake.setScale(1.5);
+            cake.setDepth(5);
         }
-        cake.setDepth(5);
 
         // Create dialog box
         this.createDialogBox(width, height);
@@ -118,38 +126,85 @@ export class CelebrationScene extends Phaser.Scene {
         const endAngle = 0;
         const angleStep = family.length > 1 ? (endAngle - startAngle) / (family.length - 1) : 0;
 
+        // Map family member types to asset keys
+        const familyAssetMap: Record<string, { key: string; isMale?: boolean }> = {
+            'mom': { key: 'family_mom' },
+            'dad': { key: 'family_dad' },
+            'grandma': { key: 'family_grandma' },
+            'grandpa': { key: 'family_dad' }, // fallback to dad
+            'brother': { key: 'family_sibling', isMale: true },
+            'sister': { key: 'family_sibling', isMale: false },
+            'older_brother': { key: 'family_sibling', isMale: true },
+            'older_sister': { key: 'family_sibling', isMale: false },
+            'husband': { key: 'family_dad' },
+            'wife': { key: 'family_mom' },
+            'son': { key: 'family_sibling', isMale: true },
+            'daughter': { key: 'family_sibling', isMale: false }
+        };
+
         family.forEach((member, index) => {
             const angle = startAngle + angleStep * index;
             const x = centerX + Math.cos(angle) * arcRadius;
             const y = centerY + Math.sin(angle) * arcRadius * 0.5 + 50;
 
-            // Check for Nano Banana asset
-            const textureKey = this.textures.exists(`family_${member.type}`)
-                ? `family_${member.type}`
-                : 'player';
+            const assetInfo = familyAssetMap[member.type] || { key: 'family_mom' };
+            const textureKey = assetInfo.key;
 
-            const sprite = this.add.sprite(x, y, textureKey);
+            if (this.textures.exists(textureKey)) {
+                const texture = this.textures.get(textureKey);
+                const frame = texture.getSourceImage();
 
-            if (this.textures.exists(`family_${member.type}`)) {
-                sprite.setDisplaySize(48, 48);
+                const sprite = this.add.sprite(x, y, textureKey);
+
+                // Crop to first pose only (all family images have multiple poses)
+                // 엄마/아빠/할머니: 1920×768 (3 poses, 640px each)
+                // 동생: 1280×768 (2 poses, 640px each - left=male, right=female)
+                let cropX = 0;
+                let cropWidth = 640;
+
+                if (textureKey === 'family_sibling' && assetInfo.isMale === false) {
+                    // Female sibling is on the right half
+                    cropX = 640;
+                }
+
+                sprite.setCrop(cropX, 0, cropWidth, frame.height);
+
+                // Scale to target height
+                const targetHeight = 60;
+                const scale = targetHeight / frame.height;
+                sprite.setScale(scale);
+                sprite.setDepth(10);
+                sprite.setData('familyType', member.type);
+                sprite.setData('familyLabel', member.label);
+
+                // Add name label
+                this.add.text(x, y + 40, member.label, {
+                    fontFamily: '"Gowun Batang", serif',
+                    fontSize: '11px',
+                    color: '#f5e6d3',
+                    backgroundColor: '#2c1810cc',
+                    padding: { x: 4, y: 2 }
+                }).setOrigin(0.5).setDepth(11);
+
+                this.familySprites.push(sprite);
             } else {
+                // Fallback to placeholder
+                const sprite = this.add.sprite(x, y, 'player');
                 sprite.setScale(1.3);
+                sprite.setDepth(10);
+                sprite.setData('familyType', member.type);
+                sprite.setData('familyLabel', member.label);
+
+                this.add.text(x, y + 40, member.label, {
+                    fontFamily: '"Gowun Batang", serif',
+                    fontSize: '11px',
+                    color: '#f5e6d3',
+                    backgroundColor: '#2c1810cc',
+                    padding: { x: 4, y: 2 }
+                }).setOrigin(0.5).setDepth(11);
+
+                this.familySprites.push(sprite);
             }
-
-            sprite.setDepth(10).setAlpha(0.5);
-            sprite.setData('familyType', member.type);
-            sprite.setData('familyLabel', member.label);
-
-            // Add name label
-            this.add.text(x, y + 32, member.label, {
-                fontFamily: '"Gowun Batang", serif',
-                fontSize: '10px',
-                color: '#f5e6d3',
-                backgroundColor: '#2c181088',
-                padding: { x: 3, y: 2 }
-            }).setOrigin(0.5).setDepth(11);
-
-            this.familySprites.push(sprite);
         });
     }
 

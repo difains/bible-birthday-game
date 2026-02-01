@@ -230,7 +230,7 @@ export class WorldScene extends Phaser.Scene {
                 this.anims.create({
                     key: 'walk_down',
                     frames: this.anims.generateFrameNumbers(spriteKey, { start: 0, end: 7 }),
-                    frameRate: 10,
+                    frameRate: 12,
                     repeat: -1
                 });
             }
@@ -239,7 +239,7 @@ export class WorldScene extends Phaser.Scene {
                 this.anims.create({
                     key: 'walk_left',
                     frames: this.anims.generateFrameNumbers(spriteKey, { start: 8, end: 15 }),
-                    frameRate: 10,
+                    frameRate: 12,
                     repeat: -1
                 });
             }
@@ -248,7 +248,7 @@ export class WorldScene extends Phaser.Scene {
                 this.anims.create({
                     key: 'walk_right',
                     frames: this.anims.generateFrameNumbers(spriteKey, { start: 16, end: 23 }),
-                    frameRate: 10,
+                    frameRate: 12,
                     repeat: -1
                 });
             }
@@ -257,7 +257,7 @@ export class WorldScene extends Phaser.Scene {
                 this.anims.create({
                     key: 'walk_up',
                     frames: this.anims.generateFrameNumbers(spriteKey, { start: 24, end: 31 }),
-                    frameRate: 10,
+                    frameRate: 12,
                     repeat: -1
                 });
             }
