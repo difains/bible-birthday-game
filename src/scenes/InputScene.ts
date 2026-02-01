@@ -24,13 +24,14 @@ export class InputScene extends Phaser.Scene {
         bg.fillRect(0, 0, width, height);
 
         // Title
-        this.add.text(width / 2, 40, '✨ 축복의 날 ✨', {
+        // Title with more spacing
+        this.add.text(width / 2, 50, '✨ 축복의 날 ✨', {
             fontFamily: '"Gowun Batang", serif',
-            fontSize: '28px',
+            fontSize: '32px',
             color: '#f5e6d3',
         }).setOrigin(0.5);
 
-        this.add.text(width / 2, 70, '당신의 정보를 입력해주세요', {
+        this.add.text(width / 2, 95, '당신의 정보를 입력해주세요', {
             fontFamily: '"Gowun Batang", serif',
             fontSize: '14px',
             color: '#d4a574',
@@ -48,7 +49,7 @@ export class InputScene extends Phaser.Scene {
         this.inputContainer.id = 'input-container';
         this.inputContainer.style.cssText = `
       position: absolute;
-      top: 100px;
+      top: 130px;
       left: 50%;
       transform: translateX(-50%);
       width: ${width - 40}px;

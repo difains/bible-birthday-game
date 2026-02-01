@@ -213,6 +213,51 @@ export class ChurchScene extends Phaser.Scene {
             const frameHeight = 384;
             const scale = targetHeight / frameHeight;
             this.player.setScale(scale);
+
+            // Create walk animations (shared with WorldScene)
+            if (!this.anims.exists('walk_down')) {
+                this.anims.create({
+                    key: 'walk_down',
+                    frames: this.anims.generateFrameNumbers(spriteKey, { start: 0, end: 7 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (!this.anims.exists('walk_left')) {
+                this.anims.create({
+                    key: 'walk_left',
+                    frames: this.anims.generateFrameNumbers(spriteKey, { start: 8, end: 15 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (!this.anims.exists('walk_right')) {
+                this.anims.create({
+                    key: 'walk_right',
+                    frames: this.anims.generateFrameNumbers(spriteKey, { start: 16, end: 23 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (!this.anims.exists('walk_up')) {
+                this.anims.create({
+                    key: 'walk_up',
+                    frames: this.anims.generateFrameNumbers(spriteKey, { start: 24, end: 31 }),
+                    frameRate: 10,
+                    repeat: -1
+                });
+            }
+
+            if (!this.anims.exists('idle')) {
+                this.anims.create({
+                    key: 'idle',
+                    frames: [{ key: spriteKey, frame: 0 }],
+                    frameRate: 1
+                });
+            }
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
             const scale = targetHeight / 32;
@@ -450,6 +495,9 @@ export class ChurchScene extends Phaser.Scene {
     update(): void {
         if (this.celebrationTriggered) {
             this.player.setVelocity(0, 0);
+            if (this.anims.exists('idle')) {
+                this.player.anims.play('idle', true);
+            }
             return;
         }
 
@@ -469,6 +517,29 @@ export class ChurchScene extends Phaser.Scene {
         }
 
         this.player.setVelocity(vx * this.playerSpeed, vy * this.playerSpeed);
+
+        // Play walk animations based on direction
+        const isMoving = vx !== 0 || vy !== 0;
+        if (isMoving) {
+            if (Math.abs(vy) > Math.abs(vx)) {
+                if (vy > 0 && this.anims.exists('walk_down')) {
+                    this.player.anims.play('walk_down', true);
+                } else if (vy < 0 && this.anims.exists('walk_up')) {
+                    this.player.anims.play('walk_up', true);
+                }
+            } else {
+                if (vx > 0 && this.anims.exists('walk_right')) {
+                    this.player.anims.play('walk_right', true);
+                } else if (vx < 0 && this.anims.exists('walk_left')) {
+                    this.player.anims.play('walk_left', true);
+                }
+            }
+        } else {
+            if (this.anims.exists('idle')) {
+                this.player.anims.play('idle', true);
+            }
+        }
+
         this.updateMinimap();
     }
 }
