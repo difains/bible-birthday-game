@@ -201,37 +201,29 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createPlayer(): void {
-        const imageKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
-        const hasImage = this.textures.exists(imageKey);
+        const spriteKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
+        const hasSprite = this.textures.exists(spriteKey);
 
         const startX = this.mapWidth / 2;
         const startY = this.mapHeight * 0.55;
 
-        if (hasImage) {
-            this.player = this.physics.add.sprite(startX, startY, imageKey);
+        // Get screen dimensions
+        const screenHeight = this.cameras.main.height;
+        const targetHeight = screenHeight * 0.25; // 25% of screen height
 
-            // Sprite sheet: 640x336, 8 columns x 4 rows of sprites, bottom ~40px is text banner
-            // Each frame is approximately 80x74 pixels
-            const texture = this.textures.get(imageKey);
-            const frame = texture.getSourceImage();
+        if (hasSprite) {
+            // Create sprite using frame 0 from spritesheet
+            this.player = this.physics.add.sprite(startX, startY, spriteKey, 0);
 
-            // Calculate actual sprite area (excluding text banner at bottom)
-            const textBannerHeight = 40;
-            const spriteAreaHeight = frame.height - textBannerHeight;
-            const frameWidth = frame.width / 8;  // 8 columns
-            const frameHeight = spriteAreaHeight / 4;  // 4 rows
-
-            // Crop to first frame only
-            this.player.setCrop(0, 0, frameWidth, frameHeight);
-
-            // Set display size directly for the cropped area
-            this.player.setDisplaySize(70, 70);
-
-            // Adjust origin because crop affects bounding
-            this.player.setOrigin(0.1, 0.1);
+            // Scale to achieve 25% screen height
+            // Frame height is 74 pixels
+            const frameHeight = 74;
+            const scale = targetHeight / frameHeight;
+            this.player.setScale(scale);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
-            this.player.setScale(2.5);
+            const scale = targetHeight / 32; // fallback 32px sprite
+            this.player.setScale(scale);
         }
 
         this.player.setCollideWorldBounds(true);

@@ -195,29 +195,28 @@ export class ChurchScene extends Phaser.Scene {
     }
 
     private createPlayer(): void {
-        const imageKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
-        const hasImage = this.textures.exists(imageKey);
+        const spriteKey = this.playerGender === 'male' ? 'player_male' : 'player_female';
+        const hasSprite = this.textures.exists(spriteKey);
 
         const startX = this.mapWidth / 2;
         const startY = this.mapHeight * 0.8;
 
-        if (hasImage) {
-            this.player = this.physics.add.sprite(startX, startY, imageKey);
+        // Get screen dimensions
+        const screenHeight = this.cameras.main.height;
+        const targetHeight = screenHeight * 0.25; // 25% of screen height
 
-            // Sprite sheet: 640x336, 8 columns x 4 rows, bottom ~40px is text banner
-            const texture = this.textures.get(imageKey);
-            const frame = texture.getSourceImage();
-            const textBannerHeight = 40;
-            const spriteAreaHeight = frame.height - textBannerHeight;
-            const frameWidth = frame.width / 8;
-            const frameHeight = spriteAreaHeight / 4;
+        if (hasSprite) {
+            // Create sprite using frame 0 from spritesheet
+            this.player = this.physics.add.sprite(startX, startY, spriteKey, 0);
 
-            this.player.setCrop(0, 0, frameWidth, frameHeight);
-            this.player.setDisplaySize(70, 70);
-            this.player.setOrigin(0.1, 0.1);
+            // Scale to achieve 25% screen height
+            const frameHeight = 74;
+            const scale = targetHeight / frameHeight;
+            this.player.setScale(scale);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
-            this.player.setScale(2.5);
+            const scale = targetHeight / 32;
+            this.player.setScale(scale);
         }
 
         this.player.setCollideWorldBounds(true);
