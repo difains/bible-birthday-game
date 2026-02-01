@@ -216,8 +216,8 @@ export class WorldScene extends Phaser.Scene {
             this.player = this.physics.add.sprite(startX, startY, spriteKey, 0);
 
             // Scale to achieve 10% screen height
-            // Frame height is 64 pixels
-            const frameHeight = 64;
+            // Frame height is 384 pixels
+            const frameHeight = 384;
             const scale = targetHeight / frameHeight;
             this.player.setScale(scale);
         } else {

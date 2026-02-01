@@ -210,7 +210,7 @@ export class ChurchScene extends Phaser.Scene {
             this.player = this.physics.add.sprite(startX, startY, spriteKey, 0);
 
             // Scale to achieve 10% screen height
-            const frameHeight = 64;
+            const frameHeight = 384;
             const scale = targetHeight / frameHeight;
             this.player.setScale(scale);
         } else {
