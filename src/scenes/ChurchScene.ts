@@ -210,10 +210,13 @@ export class ChurchScene extends Phaser.Scene {
             const frameHeight = (frame.height - 40) / 4;
 
             this.player.setCrop(0, 0, frameWidth, frameHeight);
-            this.player.setDisplaySize(50, 50);
+            // Scale to make character larger
+            const targetSize = 85;
+            const scale = targetSize / frameHeight;
+            this.player.setScale(scale);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
-            this.player.setScale(1.8);
+            this.player.setScale(2.5);
         }
 
         this.player.setCollideWorldBounds(true);
