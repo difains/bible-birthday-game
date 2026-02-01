@@ -7,7 +7,7 @@ export class ChurchScene extends Phaser.Scene {
     private joystickThumb!: Phaser.GameObjects.Image;
     private isJoystickActive: boolean = false;
     private joystickVector: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
-    private playerSpeed: number = 120;
+    private playerSpeed: number = 200;
     private altarZone!: Phaser.GameObjects.Zone;
     private celebrationTriggered: boolean = false;
     private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;

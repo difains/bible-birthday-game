@@ -13,7 +13,7 @@ export class WorldScene extends Phaser.Scene {
     private dialogBox!: Phaser.GameObjects.Container;
     private isDialogOpen: boolean = false;
     private npcs: { sprite: Phaser.GameObjects.Sprite; x: number; y: number; id: string }[] = [];
-    private playerSpeed: number = 150;
+    private playerSpeed: number = 200;
     private enterPrompt!: Phaser.GameObjects.Container;
     private currentDialogMessages: string[] = [];
     private currentDialogIndex: number = 0;
@@ -133,13 +133,14 @@ export class WorldScene extends Phaser.Scene {
     }
 
     private createBiblicalNPCs(): void {
+        // NPC positions based on GDD ratios
         const npcPositions = [
-            { id: 'david', x: this.mapWidth * 0.18, y: 450 },
-            { id: 'moses', x: this.mapWidth * 0.82, y: 550 },
-            { id: 'mary', x: this.mapWidth * 0.25, y: 750 },
-            { id: 'abraham', x: this.mapWidth * 0.75, y: 850 },
-            { id: 'joseph', x: this.mapWidth * 0.2, y: 1100 },
-            { id: 'peter', x: this.mapWidth * 0.8, y: 1200 }
+            { id: 'david', x: this.mapWidth * 0.25, y: this.mapHeight * 0.35 },
+            { id: 'moses', x: this.mapWidth * 0.75, y: this.mapHeight * 0.35 },
+            { id: 'mary', x: this.mapWidth * 0.30, y: this.mapHeight * 0.50 },
+            { id: 'abraham', x: this.mapWidth * 0.70, y: this.mapHeight * 0.50 },
+            { id: 'joseph', x: this.mapWidth * 0.20, y: this.mapHeight * 0.65 },
+            { id: 'peter', x: this.mapWidth * 0.80, y: this.mapHeight * 0.65 }
         ];
 
         const npcAssetMap: Record<string, string> = {

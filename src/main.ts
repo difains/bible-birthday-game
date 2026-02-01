@@ -9,8 +9,8 @@ import { CelebrationScene } from './scenes/CelebrationScene';
 const config: Phaser.Types.Core.GameConfig = {
     type: Phaser.AUTO,
     parent: 'game-container',
-    width: 360,
-    height: 640,
+    width: 390,
+    height: 844,
     backgroundColor: '#2c1810',
     scale: {
         mode: Phaser.Scale.FIT,
