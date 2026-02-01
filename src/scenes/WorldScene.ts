@@ -209,15 +209,15 @@ export class WorldScene extends Phaser.Scene {
 
         // Get screen dimensions
         const screenHeight = this.cameras.main.height;
-        const targetHeight = screenHeight * 0.25; // 25% of screen height
+        const targetHeight = screenHeight * 0.10; // 10% of screen height
 
         if (hasSprite) {
             // Create sprite using frame 0 from spritesheet
             this.player = this.physics.add.sprite(startX, startY, spriteKey, 0);
 
-            // Scale to achieve 25% screen height
-            // Frame height is 74 pixels
-            const frameHeight = 74;
+            // Scale to achieve 10% screen height
+            // Frame height is 64 pixels
+            const frameHeight = 64;
             const scale = targetHeight / frameHeight;
             this.player.setScale(scale);
         } else {
