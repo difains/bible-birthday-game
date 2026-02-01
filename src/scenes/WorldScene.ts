@@ -210,17 +210,25 @@ export class WorldScene extends Phaser.Scene {
         if (hasImage) {
             this.player = this.physics.add.sprite(startX, startY, imageKey);
 
-            // Crop to show only first frame (top-left character)
+            // Sprite sheet: 640x336, 8 columns x 4 rows of sprites, bottom ~40px is text banner
+            // Each frame is approximately 80x74 pixels
             const texture = this.textures.get(imageKey);
             const frame = texture.getSourceImage();
-            const frameWidth = frame.width / 8;
-            const frameHeight = (frame.height - 40) / 4; // Subtract text banner height
 
+            // Calculate actual sprite area (excluding text banner at bottom)
+            const textBannerHeight = 40;
+            const spriteAreaHeight = frame.height - textBannerHeight;
+            const frameWidth = frame.width / 8;  // 8 columns
+            const frameHeight = spriteAreaHeight / 4;  // 4 rows
+
+            // Crop to first frame only
             this.player.setCrop(0, 0, frameWidth, frameHeight);
-            // Scale to make character larger (target ~80-90 pixels)
-            const targetSize = 85;
-            const scale = targetSize / frameHeight;
-            this.player.setScale(scale);
+
+            // Set display size directly for the cropped area
+            this.player.setDisplaySize(70, 70);
+
+            // Adjust origin because crop affects bounding
+            this.player.setOrigin(0.1, 0.1);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
             this.player.setScale(2.5);

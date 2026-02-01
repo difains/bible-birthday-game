@@ -204,16 +204,17 @@ export class ChurchScene extends Phaser.Scene {
         if (hasImage) {
             this.player = this.physics.add.sprite(startX, startY, imageKey);
 
+            // Sprite sheet: 640x336, 8 columns x 4 rows, bottom ~40px is text banner
             const texture = this.textures.get(imageKey);
             const frame = texture.getSourceImage();
+            const textBannerHeight = 40;
+            const spriteAreaHeight = frame.height - textBannerHeight;
             const frameWidth = frame.width / 8;
-            const frameHeight = (frame.height - 40) / 4;
+            const frameHeight = spriteAreaHeight / 4;
 
             this.player.setCrop(0, 0, frameWidth, frameHeight);
-            // Scale to make character larger
-            const targetSize = 85;
-            const scale = targetSize / frameHeight;
-            this.player.setScale(scale);
+            this.player.setDisplaySize(70, 70);
+            this.player.setOrigin(0.1, 0.1);
         } else {
             this.player = this.physics.add.sprite(startX, startY, 'player');
             this.player.setScale(2.5);
